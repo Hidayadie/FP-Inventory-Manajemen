@@ -17,7 +17,6 @@ import (
 	"gin-auth/internal/public"
 
 	"github.com/gin-contrib/cors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
@@ -28,7 +27,7 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8081"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -36,30 +35,51 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	}))
 
 	r.Use(func(c *gin.Context) {
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20)
+		c.Request.Body = http.MaxBytesReader(
+			c.Writer,
+			c.Request.Body,
+			1<<20,
+		)
 		c.Next()
 	})
+
 	r.GET("/health", middleware.MockEndpoint("health"), func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"data": gin.H{"status": "ok"}})
+		c.JSON(http.StatusOK, gin.H{
+			"data": gin.H{"status": "ok"},
+		})
 	})
-	repo := auth.NewRepository(db)
-	service := auth.NewService(repo, secret)
-	handler := auth.NewHandler(service)
-	auth.RegisterRoutes(r, handler)
+
+	// Auth
+	authRepo := auth.NewRepository(db)
+	authService := auth.NewService(authRepo, secret)
+	authHandler := auth.NewHandler(authService)
+
+	auth.RegisterRoutes(r, authHandler)
+
+	// Public routes
 	public.RegisterRoutes(r)
 
-	//productRepo := product.NewRepository(db)
-	//productService := product.NewService(productRepo)
-	//productHandler := product.NewHandler(productService)
+	// Category
+	categoryRepo := category.NewRepository(db)
+	categoryService := category.NewService(categoryRepo)
+	categoryHandler := category.NewHandler(categoryService)
 
-	//private.RegisterRoutes(r, handler.RequireAuth(), productHandler)
-	//orderHandler := orders.NewHandler(orders.NewService(orders.NewRepository(db)))
-	//orders.RegisterRoutes(r.Group("/api/private", handler.RequireAuth()), orderHandler)
+	// Endpoint category dengan autentikasi
+	categoryRoutes := r.Group("/api/categories")
+	categoryRoutes.Use(authHandler.AuthReq())
+	{
+		categoryRoutes.POST("", categoryHandler.Create)
+		categoryRoutes.GET("", categoryHandler.ListCategory)
+		categoryRoutes.GET("/:id", categoryHandler.GetByID)
+		categoryRoutes.DELETE("/:id", categoryHandler.Delete)
+	}
+
 	return r
 }
 
 func run() error {
-	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := godotenv.Load(); err != nil &&
+		!errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("load .env: %w", err)
 	}
 
@@ -86,13 +106,14 @@ func run() error {
 		&orders.Order{},
 		&orders.OrderDetail{},
 	); err != nil {
-		return fmt.Errorf("migrasi tabel users/products gagal: %w", err)
+		return fmt.Errorf("migrasi tabel gagal: %w", err)
 	}
-	port := os.Getenv("PORT")
 
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
+
 	server := &http.Server{
 		Addr:              ":" + port,
 		Handler:           setupEngine(db, secret),
@@ -101,6 +122,7 @@ func run() error {
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
+
 	log.Printf("Server berjalan di http://localhost:%s", port)
 	return server.ListenAndServe()
 }

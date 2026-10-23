@@ -1,4 +1,4 @@
-```html
+﻿```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -635,16 +635,53 @@ document.getElementById("logoutButton").addEventListener("click", async function
             method: "POST",
             credentials: "include"
         });
-
+        
         console.log("Status logout:", response.status);
     } catch (error) {
         console.error("Request logout:", error);
     }
     alert("logout berhasil")
     // Paksa navigasi ke halaman login di root frontend.
-    window.location.assign("http://localhost:8081/login.html");
+    window.location.replace("/login.html");
 });
 
+(async function checkLogin() {
+    const API_URL = "http://localhost:8080";
+    const LOGIN_URL = "http://localhost:8081/login.html";
+
+    try {
+        const response = await fetch(`${API_URL}/api/me`, {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store"
+        });
+
+        // Belum login atau sesi tidak valid.
+        if (!response.ok) {
+            window.location.replace(LOGIN_URL);
+            return;
+        }
+
+        // Pastikan respons bisa dibaca.
+        const result = await response.json();
+        const user = result.data || result.user;
+
+        if (!user || !user.role) {
+            window.location.replace(LOGIN_URL);
+            return;
+        }
+
+        // Opsional: simpan data pengguna untuk digunakan halaman.
+        window.currentUser = user;
+
+    } catch (error) {
+        console.error("Gagal memeriksa autentikasi:", error);
+
+        // Jika server tidak bisa diverifikasi, jangan izinkan
+        // halaman tetap terbuka.
+        window.location.replace(LOGIN_URL);
+    }
+})();
 </script>
 
 </body>

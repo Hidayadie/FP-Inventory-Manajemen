@@ -1,4 +1,4 @@
-```html
+﻿```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -320,20 +320,16 @@
             <span class="nav-text">Kelola Aset</span>
         </a>
 
-        <a href="kategori.html" class="nav-link">
+        <a href="category.html" class="nav-link">
             <i class="bi bi-tags"></i>
             <span class="nav-text">Kategori Aset</span>
         </a>
-
+        
         <a href="keluhan.html" class="nav-link">
             <i class="bi bi-chat-left-text"></i>
             <span class="nav-text">Keluhan</span>
         </a>
-
-        <a href="peminjaman.html" class="nav-link">
-            <i class="bi bi-arrow-left-right"></i>
-            <span class="nav-text">Peminjaman Aset</span>
-        </a>
+    
     </nav>
 
     <div class="menu-title">Administrasi</div>
@@ -645,9 +641,47 @@ document.getElementById("logoutButton").addEventListener("click", async function
         console.error("Gagal menghubungi server logout:", error);
     } finally {
         // Tetap arahkan ke login meskipun request mengalami kegagalan.
-        window.location.replace("login.html");
+        window.location.replace("/login.html");
     }
 });
+
+(async function checkLogin() {
+    const API_URL = "http://localhost:8080";
+    const LOGIN_URL = "http://localhost:8081/login.html";
+
+    try {
+        const response = await fetch(`${API_URL}/api/me`, {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store"
+        });
+
+        // Belum login atau sesi tidak valid.
+        if (!response.ok) {
+            window.location.replace(LOGIN_URL);
+            return;
+        }
+
+        // Pastikan respons bisa dibaca.
+        const result = await response.json();
+        const user = result.data || result.user;
+
+        if (!user || !user.role) {
+            window.location.replace(LOGIN_URL);
+            return;
+        }
+
+        // Opsional: simpan data pengguna untuk digunakan halaman.
+        window.currentUser = user;
+
+    } catch (error) {
+        console.error("Gagal memeriksa autentikasi:", error);
+
+        // Jika server tidak bisa diverifikasi, jangan izinkan
+        // halaman tetap terbuka.
+        window.location.replace(LOGIN_URL);
+    }
+})();
 </script>
 
 </body>
