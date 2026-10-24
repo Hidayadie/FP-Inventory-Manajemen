@@ -16,6 +16,9 @@ var (
 	ErrInvalidCredentials = errors.New("email atau password salah")
 	ErrInvalidToken       = errors.New("token tidak valid atau kedaluwarsa")
 	ErrInvalidRole        = ("Role tidak berhak mengakses halaman")
+	ErrDuplicateEmail     = errors.New("email sudah digunakan")
+	ErrInvalidUser        = errors.New("data user tidak valid")
+	ErrUserNotFound       = errors.New("user tidak ditemukan")
 )
 
 type Service struct {
@@ -44,6 +47,56 @@ func (s *Service) Register(ctx context.Context, name, email, password, role stri
 		return User{}, err
 	}
 	return user, nil
+}
+
+func (s *Service) Create(
+	ctx context.Context,
+	input CreateUserInput,
+) (*User, error) {
+	input.Name = strings.TrimSpace(input.Name)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	input.Role = strings.ToLower(strings.TrimSpace(input.Role))
+
+	if input.Name == "" || input.Email == "" ||
+		len(input.Password) < 8 || len(input.Password) > 72 ||
+		(input.Role != "admin" &&
+			input.Role != "teknisi" &&
+			input.Role != "user") {
+		return nil, ErrInvalidUser
+	}
+
+	_, err := s.repo.GetByEmail(ctx, input.Email)
+	if err == nil {
+		return nil, ErrDuplicateEmail
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(input.Password),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+
+	item := &User{
+		Name:      input.Name,
+		Email:     input.Email,
+		Password:  string(hashedPassword),
+		Role:      input.Role,
+		CreatedAt: now,
+		UpdateAt:  now,
+	}
+
+	if err := s.repo.Create(ctx, item); err != nil {
+		return nil, err
+	}
+
+	return item, nil
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (string, error) {
@@ -128,4 +181,90 @@ func (s *Service) Authenticate(
 	}
 
 	return user, nil
+}
+
+func (s *Service) List(ctx context.Context) ([]User, error) {
+	return s.repo.List(ctx)
+}
+
+func (s *Service) GetByID(
+	ctx context.Context,
+	id uint,
+) (*User, error) {
+	item, err := s.repo.GetByID(ctx, id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrUserNotFound
+	}
+	return &item, err
+}
+
+func (s *Service) Update(
+	ctx context.Context,
+	id uint,
+	input UpdateUserInput,
+) (*User, error) {
+	item, err := s.repo.GetByID(ctx, id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	input.Name = strings.TrimSpace(input.Name)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	input.Role = strings.ToLower(strings.TrimSpace(input.Role))
+
+	if input.Name == "" || input.Email == "" ||
+		(input.Role != "admin" &&
+			input.Role != "teknisi" &&
+			input.Role != "user") {
+		return nil, ErrInvalidUser
+	}
+
+	if input.Password != "" &&
+		(len(input.Password) < 8 || len(input.Password) > 72) {
+		return nil, ErrInvalidUser
+	}
+
+	existing, err := s.repo.GetByEmail(ctx, input.Email)
+	if err == nil && existing.ID != id {
+		return nil, ErrDuplicateEmail
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	item.Name = input.Name
+	item.Email = input.Email
+	item.Role = input.Role
+	item.UpdateAt = time.Now()
+
+	if input.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword(
+			[]byte(input.Password),
+			bcrypt.DefaultCost,
+		)
+		if err != nil {
+			return nil, err
+		}
+		item.Password = string(hashedPassword)
+	}
+
+	if err := s.repo.Update(ctx, &item); err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func (s *Service) Delete(
+	ctx context.Context,
+	id uint,
+) error {
+	err := s.repo.Delete(ctx, id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrUserNotFound
+	}
+	return err
 }

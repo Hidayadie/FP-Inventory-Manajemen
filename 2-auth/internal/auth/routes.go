@@ -91,26 +91,20 @@ func currentUser(c *gin.Context) (User, bool) {
 
 // serveDashboard menyajikan file dashboard berdasarkan role.
 func serveDashboard(c *gin.Context, role string) {
-	// Sesuaikan kandidat dengan struktur folder proyekmu.
-	candidates := []string{
-		"client/" + role + "/dashboard.html",
-		"../1-frontend/client/" + role + "/dashboard.html",
-		"1-frontend/client/" + role + "/dashboard.html",
-		"/login.html",
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:8081"
 	}
 
-	for _, path := range candidates {
-		info, err := os.Stat(path)
-		if err != nil || info.IsDir() {
-			continue
-		}
-
-		c.File(path)
-		return
+	switch role {
+	case "admin", "user", "teknisi":
+		c.Redirect(
+			http.StatusFound,
+			frontendURL+"/client/"+role+"/dashboard.html",
+		)
+	default:
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "Role pengguna tidak valid",
+		})
 	}
-
-	c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-		"error": "File dashboard tidak ditemukan",
-		"role":  role,
-	})
 }

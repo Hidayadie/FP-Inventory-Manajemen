@@ -16,3 +16,21 @@ type credentials struct {
 	Email    string `json:"email" binding:"required,email,max=254"`
 	Password string `json:"password" binding:"required,min=8,max=72"`
 }
+
+func (User) TableName() string {
+	return "users"
+}
+
+type CreateUserInput struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8,max=72"`
+	Role     string `json:"role" binding:"required,oneof=admin teknisi user"`
+}
+
+type UpdateUserInput struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"omitempty,min=8,max=72"`
+	Role     string `json:"role" binding:"required,oneof=admin teknisi user"`
+}

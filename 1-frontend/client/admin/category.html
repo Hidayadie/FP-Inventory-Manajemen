@@ -1,5 +1,4 @@
-﻿```html
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -8,6 +7,8 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
 
     <style>
         * {
@@ -329,7 +330,7 @@
             <i class="bi bi-chat-left-text"></i>
             <span class="nav-text">Keluhan</span>
         </a>
-    
+        
     </nav>
 
     <div class="menu-title">Administrasi</div>
@@ -350,10 +351,10 @@
             <span class="nav-text">Pengaturan</span>
         </a>
 
- <a href="#" id="logoutButton" class="nav-link logout">
-    <i class="bi bi-box-arrow-left"></i>
-    <span class="nav-text">Logout</span>
-</a>
+        <a href="#" id="logoutButton" class="nav-link logout">
+            <i class="bi bi-box-arrow-left"></i>
+            <span class="nav-text">Logout</span>
+        </a>
     </nav>
 </aside>
 
@@ -369,82 +370,797 @@
 
 
     <!-- TABEL ASET -->
+    
     <section class="row g-4 mb-4">
-        <div class="col-12 col-xl-12">
-            <div class="content-card p-0">
-                <div class="p-4 d-flex justify-content-between align-items-center">
+        <div class="col-12">
+            <div class="content-card">
+                
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                     <div>
-                        <h2 class="section-title mb-1">Category</h2>
-                        <div class="muted">Daftar Category terdaftar</div>
+                        <h2 class="section-title mb-1">
+                            Daftar Kategori
+                        </h2>
+                        <div class="muted">
+                            Data kategori aset 
+                        </div>
                     </div>
-                    <a href="aset.html" class="btn btn-sm btn-outline-primary">
-                        Lihat Semua
-                    </a>
+            </div>
+            <div class="d-flex justify-content-end align-items-center mb-4">
+                <button type="button" class="btn btn-primary btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#addCategoryModal">
+                <i class="bi bi-plus-lg me-1"></i>
+                Tambah Category
+            </button>
+        </div>
+        <div id="categoryAlert"
+        class="alert d-none"
+        role="alert"></div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label for="categoryFilter"
+                class="form-label fw-semibold">
+                Pilih Kategori
+            </label>
+
+            <select id="categoryFilter"
+            class="form-select"
+            style="width: 100%">
+            <option value="">Semua Kategori</option>
+        </select>
+
+        <small class="text-muted">
+            Cari kategori berdasarkan nama.
+        </small>
+    </div>
+</div>
+    
+    <div class="table-responsive">
+    <table id="categoryTable"
+           class="table table-hover align-middle mb-0 w-100">
+        <thead>
+            <tr>
+                <th style="width: 80px;">No.</th>
+                <th>Nama Kategori</th>
+                <th>Tanggal Dibuat</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="categoryTableBody">
+        </tbody>
+    </table>
+</div>
+
+
+
+<div class="mt-3 muted" id="categoryCount">
+    Menyiapkan data...
+</div>
+
+</div>
+</div>
+</section>
+
+<!--MODAL BOOTSTRAP UBAH TAMBAH -->
+
+<!-- Modal Edit Category -->
+<div class="modal fade"
+     id="editCategoryModal"
+     tabindex="-1"
+     aria-labelledby="editCategoryModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <form id="editCategoryForm">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"
+                        id="editCategoryModalLabel">
+                        <i class="bi bi-pencil-square me-2"></i>
+                        Edit Category
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"
+                            aria-label="Tutup"></button>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Kode Aset</th>
-                                <th>Nama Aset</th>
-                                <th>Kategori</th>
-                                <th>Kondisi</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="asset-code">AST-LAP-001</td>
-                                <td>Laptop Lenovo</td>
-                                <td>Elektronik</td>
-                                <td><span class="status good">Baik</span></td>
-                                <td>Tersedia</td>
-                            </tr>
-                            <tr>
-                                <td class="asset-code">AST-PRN-002</td>
-                                <td>Printer Epson</td>
-                                <td>Elektronik</td>
-                                <td><span class="status warning">Perlu Servis</span></td>
-                                <td>Dipinjam</td>
-                            </tr>
-                            <tr>
-                                <td class="asset-code">AST-MON-003</td>
-                                <td>Monitor LG</td>
-                                <td>Elektronik</td>
-                                <td><span class="status good">Baik</span></td>
-                                <td>Tersedia</td>
-                            </tr>
-                            <tr>
-                                <td class="asset-code">AST-CHR-004</td>
-                                <td>Kursi Kantor</td>
-                                <td>Furniture</td>
-                                <td><span class="status danger">Rusak</span></td>
-                                <td>Tersedia</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="modal-body p-4">
+
+                    <input type="hidden" id="editCategoryId">
+
+                    <div class="mb-3">
+                        <label for="editCategoryName"
+                               class="form-label fw-semibold">
+                            Nama Kategori
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="editCategoryName"
+                               name="name"
+                               placeholder="Masukkan nama kategori"
+                               maxlength="100"
+                               required>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button"
+                            class="btn btn-light border"
+                            data-bs-dismiss="modal">
+                        Batal
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary"
+                            id="updateCategoryButton">
+                        <i class="bi bi-save me-1"></i>
+                        Simpan Perubahan
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<!--  BATAS Modal Ubah Category -->
+
+<!-- Modal Tambah Category -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1"
+aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+        <form id="addCategoryForm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">
+                    Tambah Category
+                </h5>
+                <button type="button" class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="categoryAlert" class="alert d-none"
+                role="alert"></div>
+
+                <div class="mb-3">
+                    <label for="categoryName" class="form-label">
+                        Nama Category
+                    </label>
+                    <input type="text" class="form-control"
+                    id="categoryName" name="name"
+                    placeholder="Contoh: Furniture"
+                    maxlength="100" required>
+                    <div class="form-text">
+                        Masukkan nama kategori yang akan ditambahkan.
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
-    
 
-    <footer>
-        &copy; 2026 Sistem Manajemen Inventaris Cerdas
-    </footer>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">
+                Batal
+            </button>
+            <button type="submit" class="btn btn-primary"
+            id="saveCategoryBtn">
+            <i class="bi bi-save me-1"></i>
+            Simpan
+        </button>
+    </div>
+</form>
+
+</div>
+</div>
+</div>
+<!--PENUTUP BOOTSTRAP TAMBAH-->  
+
+<footer>
+    &copy; 2026 Sistem Manajemen Inventaris Cerdas
+</footer>
 
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.4/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-document.getElementById("logoutButton").addEventListener("click", async function (event) {
+
+// untuk select2
+    const API_BASE ="http://localhost:8080/api/private/categories";
+    
+    $(document).ready(function () {
+        const API_URL =
+        "http://localhost:8080/api/private/categories";
+
+        const $tableBody = $("#categoryTableBody");
+        const $alert = $("#categoryAlert");
+        const $filter = $("#categoryFilter");
+        const $refresh = $("#refreshCategories");
+        const $count = $("#categoryCount");
+
+        let categories = [];
+
+    // Inisialisasi Select2 dengan tema Bootstrap 5.
+        $filter.select2({
+            theme: "bootstrap-5",
+            width: "100%",
+            placeholder: "Cari nama kategori...",
+            allowClear: true
+        });
+
+        function showAlert(message, type = "danger") {
+            $alert
+            .removeClass("d-none alert-success alert-danger alert-warning")
+            .addClass("alert-" + type)
+            .text(message);
+        }
+
+        function hideAlert() {
+            $alert
+            .addClass("d-none")
+            .removeClass("alert-success alert-danger alert-warning")
+            .text("");
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+
+            return date.toLocaleString("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Jakarta"
+            });
+        }
+        
+        let categoryDataTable = null;
+
+function renderTable() {
+    const selectedId = $("#categoryFilter").val();
+
+    const filtered = selectedId
+        ? categories.filter(
+            item => String(item.id) === String(selectedId)
+        )
+        : categories;
+
+    if (categoryDataTable) {
+        categoryDataTable.destroy();
+        categoryDataTable = null;
+    }
+
+    const $tbody = $("#categoryTableBody");
+    $tbody.empty();
+
+    filtered.forEach(function (item, index) {
+        const $row = $("<tr>");
+
+        $("<td>").text(index + 1).appendTo($row);
+        $("<td>").text(item.name ?? "-").appendTo($row);
+        $("<td>").text(formatDate(item.created_at)).appendTo($row);
+
+        const $action = $("<td>");
+        //button Edit
+        $("<button>", {
+            type: "button",
+            class: "btn btn-warning btn-sm btn-edit-category",
+            title: "Edit kategori"
+        })
+        .attr("data-id", item.id)
+        .html('<i class="bi bi-pencil-square me-1"></i>Edit')
+        .appendTo($action);
+
+        //button hapus
+        
+        $("<button>", {
+            type: "button",
+            class: "btn btn-danger btn-sm btn-delete-category",
+            title: "Hapus kategori"
+        })
+        .attr("data-id", item.id)
+        .attr("data-name", item.name)
+        .html('<i class="bi bi-trash me-1"></i>Hapus')
+        .appendTo($action);
+
+        $row.append($action);
+        $tbody.append($row);
+    });
+
+    categoryDataTable = new DataTable("#categoryTable", {
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50],
+        ordering: true,
+        searching: true,
+        paging: true,
+        info: true,
+        language: {
+            search: "Cari:",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_–_END_ dari _TOTAL_ data",
+            infoEmpty: "Tidak ada data",
+            zeroRecords: "Data tidak ditemukan",
+            emptyTable: "Belum ada data kategori",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Berikutnya",
+                previous: "Sebelumnya"
+            }
+        },
+        columnDefs: [
+            {
+                targets: 0,
+                orderable: false,
+                searchable: false
+            },
+            {
+                targets: 3,
+                orderable: false,
+                searchable: false
+            }
+        ]
+    });
+
+    $("#categoryCount").text(
+        `Menampilkan ${filtered.length} kategori`
+    );
+}
+
+        function loadCategories() {
+            $refresh.prop("disabled", true);
+
+            $tableBody.html(`
+            <tr>
+                <td colspan="4" class="text-center py-4">
+                    <span class="spinner-border spinner-border-sm
+                                 text-primary me-2"></span>
+                    Memuat data kategori...
+                </td>
+            </tr>
+            `);
+
+            hideAlert();
+
+        // AJAX GET ke API kategori.
+            $.ajax({
+                url: API_URL,
+                method: "GET",
+                dataType: "json",
+                xhrFields: {
+                    withCredentials: true
+                },
+                headers: {
+                    "Accept": "application/json"
+                },
+                cache: false,
+
+                success: function (response) {
+                    if (!response ||
+                        !Array.isArray(response.data)) {
+
+                        showAlert(
+                            "Format respons API tidak sesuai.",
+                            "danger"
+                            );
+
+                    $tableBody.html(`
+                        <tr>
+                            <td colspan="4"
+                                class="text-center py-4">
+                                Format data tidak valid.
+                            </td>
+                        </tr>
+                    `);
+
+                    return;
+                }
+
+                categories = response.data;
+
+                // Isi ulang dropdown Select2.
+                $filter.empty();
+
+                $filter.append(
+                    new Option("Semua Kategori", "", true, true)
+                    );
+                
+                categories.forEach(function (item) {
+                    $filter.append(
+                        new Option(
+                            item.name ?? "Tanpa nama",
+                            String(item.id)
+                            )
+                        );
+                });
+                
+                $filter.val("").trigger("change.select2");
+                
+                renderTable();
+                
+                if (categories.length === 0) {
+                    showAlert(
+                        "Belum ada kategori yang terdaftar.",
+                        "warning"
+                        );
+                }
+            },
+            
+            error: function (xhr, status, error) {
+                console.error(
+                    "AJAX kategori gagal:",
+                    xhr.status,
+                    status,
+                    error,
+                    xhr.responseText
+                    );
+
+                let message = "Gagal memuat data kategori.";
+                
+                if (xhr.status === 401 || xhr.status === 403) {
+                    message =
+                    "Akses ditolak. Silakan login kembali.";
+                } else if (xhr.status === 404) {
+                    message =
+                    "Endpoint kategori tidak ditemukan.";
+                } else if (status === "parsererror") {
+                    message =
+                    "Respons API bukan JSON yang valid.";
+                } else if (xhr.status === 0) {
+                    message =
+                    "Tidak dapat mengakses API. Periksa server dan CORS.";
+                }
+                
+                showAlert(message, "danger");
+
+                $tableBody.html(`
+                    <tr>
+                        <td colspan="4"
+                            class="text-center text-danger py-4">
+                            Data kategori gagal dimuat.
+                        </td>
+                    </tr>
+                `);
+            },
+
+            complete: function () {
+                $refresh.prop("disabled", false);
+            }
+        });
+        }
+
+    // Filter tabel saat pilihan Select2 berubah.
+        $filter.on("change", function () {
+            renderTable();
+        });
+    
+    // Muat ulang data melalui AJAX.
+        $refresh.on("click", function () {
+            loadCategories();
+        });
+        
+    // Panggilan pertama saat halaman dibuka.
+        loadCategories();
+    });
+
+//batas select2
+
+
+//AJAX click edit dan  menampilkan data category pada modal
+
+
+$(document).on("click", ".btn-edit-category", function () {
+    const id = $(this).attr("data-id");
+
+    console.log("Tombol Edit diklik, ID:", id);
+
+    if (!id) {
+        Swal.fire("Error", "ID kategori tidak ditemukan.", "error");
+        return;
+    }
+
+    $.ajax({
+        url: `http://localhost:8080/api/private/categories/${id}`,
+        method: "GET",
+        dataType: "json",
+        xhrFields: {
+            withCredentials: true
+        },
+        headers: {
+            Accept: "application/json"
+        },
+
+        success: function (response) {
+            console.log("Respons GET kategori:", response);
+
+            const category =
+                response.data ?? response.category ?? response;
+
+            if (category.id == null || category.name == null) {
+                Swal.fire(
+                    "Error",
+                    "Data kategori tidak ditemukan.",
+                    "error"
+                );
+                return;
+            }
+
+            $("#editCategoryId").val(category.id);
+            $("#editCategoryName").val(category.name);
+
+            const modalElement =
+                document.getElementById("editCategoryModal");
+
+            if (!modalElement) {
+                console.error("Elemen #editCategoryModal tidak ditemukan.");
+                return;
+            }
+
+            bootstrap.Modal
+                .getOrCreateInstance(modalElement)
+                .show();
+        },
+
+        error: function (xhr) {
+            console.error("GET kategori gagal:", xhr.status, xhr.responseText);
+
+            Swal.fire({
+                icon: "error",
+                title: "Gagal Memuat Kategori",
+                text: xhr.responseJSON?.error ||
+                    `Request gagal dengan HTTP ${xhr.status}.`
+            });
+        }
+    });
+});
+
+// batas click button edit dan menmapilkan datakategori
+
+//batas memproses edit
+$("#editCategoryForm").on("submit", function (event) {
     event.preventDefault();
 
+    const id = $("#editCategoryId").val();
+    const name = $("#editCategoryName").val().trim();
+
+    if (!id || !name) {
+        Swal.fire({
+            icon: "warning",
+            title: "Data belum lengkap",
+            text: "Nama kategori wajib diisi."
+        });
+        return;
+    }
+
+    $.ajax({
+        url: `http://localhost:8080/api/private/categories/${encodeURIComponent(id)}`,
+        method: "PUT",
+        contentType: "application/json",
+        dataType: "json",
+
+        xhrFields: {
+            withCredentials: true
+        },
+
+        headers: {
+            "Accept": "application/json"
+        },
+
+        data: JSON.stringify({
+            name: name
+        }),
+
+        success: function (response) {
+            Swal.fire({
+                icon: "success",
+                title: "Berhasil!",
+                text: response.message ||
+                    "Kategori berhasil diperbarui.",
+                confirmButtonText: "OK",
+                allowOutsideClick: false
+            }).then(function () {
+                window.location.reload();
+            });
+        },
+
+        error: function (xhr) {
+            const response = xhr.responseJSON || {};
+
+            Swal.fire({
+                icon: "error",
+                title: "Gagal Memperbarui!",
+                text: response.message ||
+                    response.error ||
+                    `Gagal memperbarui kategori (HTTP ${xhr.status}).`,
+                confirmButtonText: "Coba Lagi"
+            });
+        }
+    });
+});
+// batas proses edit 
+
+
+// proses tambah category di endpoint
+
+
+$("#addCategoryForm").on("submit", function (event) {
+    event.preventDefault();
+
+    const $form = $(this);
+    const $button = $("#saveCategoryButton");
+    const modalElement = document.getElementById("addCategoryModal");
+
+    const name = $("#categoryName").val().trim();
+
+    // Validasi input
+    if (!name) {
+        Swal.fire({
+            icon: "warning",
+            title: "Nama kategori wajib diisi!",
+            text: "Silakan masukkan nama kategori terlebih dahulu.",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#2563eb"
+        });
+        return;
+    }
+
+    // Cegah pengiriman berulang
+    if ($button.prop("disabled")) {
+        return;
+    }
+
+    $button.prop("disabled", true).html(`
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Menyimpan...
+    `);
+
+    $.ajax({
+        url: API_BASE,
+        method: "POST",
+        contentType: "application/json",
+        dataType: "json",
+
+        xhrFields: {
+            withCredentials: true
+        },
+
+        headers: {
+            "Accept": "application/json"
+        },
+
+        data: JSON.stringify({
+            name: name
+        }),
+
+        // BERHASIL MENAMBAHKAN KATEGORI
+        success: function (response) {
+            Swal.fire({
+                icon: "success",
+                title: "Berhasil!",
+                text: response.message ||
+                    response.data?.message ||
+                    "Kategori berhasil ditambahkan.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#2563eb",
+                allowOutsideClick: false
+            }).then(function () {
+                // Tutup modal Bootstrap
+                const modalInstance =
+                    bootstrap.Modal.getOrCreateInstance(modalElement);
+
+                // Reload setelah modal benar-benar tertutup
+                modalElement.addEventListener(
+                    "hidden.bs.modal",
+                    function () {
+                        window.location.reload();
+                    },
+                    { once: true }
+                );
+
+                modalInstance.hide();
+                $form[0].reset();
+            });
+        },
+
+        // GAGAL MENAMBAHKAN KATEGORI
+        error: function (xhr) {
+            console.error(
+                "Gagal menambahkan kategori:",
+                xhr.status,
+                xhr.responseText
+            );
+
+            const response = xhr.responseJSON || {};
+
+            let message =
+                response.message ||
+                response.error ||
+                response.data?.message ||
+                response.data?.error ||
+                "Kategori gagal ditambahkan. Silakan coba lagi.";
+
+            if (xhr.status === 0) {
+                message =
+                    "Tidak dapat terhubung ke server. Periksa koneksi API.";
+            } else if (xhr.status === 400) {
+                message =
+                    response.message ||
+                    response.error ||
+                    "Data kategori tidak valid.";
+            } else if (xhr.status === 401 || xhr.status === 403) {
+                message =
+                    response.message ||
+                    response.error ||
+                    "Sesi berakhir atau akses ditolak.";
+            } else if (xhr.status === 404) {
+                message =
+                    response.message ||
+                    response.error ||
+                    "Endpoint kategori tidak ditemukan.";
+            } else if (xhr.status === 409) {
+                message =
+                    response.message ||
+                    response.error ||
+                    "Nama kategori sudah digunakan.";
+            }
+
+            Swal.fire({
+                icon: "error",
+                title: "Gagal Menyimpan!",
+                text: message,
+                confirmButtonText: "Coba Lagi",
+                confirmButtonColor: "#dc3545"
+            });
+
+            // Modal tetap terbuka jika gagal.
+        },
+
+        // AKTIFKAN KEMBALI TOMBOL SIMPAN
+        complete: function () {
+            $button.prop("disabled", false).html(`
+                <i class="bi bi-save me-1"></i>
+                Simpan Kategori
+            `);
+        }
+    });
+});
+
+
+
+//batas endpoint tambah category
+document.getElementById("logoutButton").addEventListener("click", async function (event) {
+    event.preventDefault();
+    
     const button = this;
     button.style.pointerEvents = "none";
-
+    
     try {
         const response = await fetch("http://localhost:8080/api/auth/logout", {
             method: "POST",
@@ -461,6 +1177,108 @@ document.getElementById("logoutButton").addEventListener("click", async function
         window.location.replace("/login.html");
     }
 });
+
+
+// Proses hapus Category 
+
+document.addEventListener("click", async function (event) {
+    const deleteButton = event.target.closest(".btn-delete-category");
+
+    if (!deleteButton) return;
+
+    const id = deleteButton.dataset.id;
+    const name = deleteButton.dataset.name || "category ini";
+
+    if (!id) {
+        Swal.fire({
+            icon: "error",
+            title: "Gagal!",
+            text: "ID category tidak ditemukan."
+        });
+        return;
+    }
+
+    // Konfirmasi penghapusan
+    const confirmation = await Swal.fire({
+        title: "Hapus Category?",
+        text: `Apakah kamu yakin ingin menghapus "${name}"?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Ya, hapus!",
+        cancelButtonText: "Batal",
+        reverseButtons: true
+    });
+
+    // Batalkan jika pengguna memilih Batal
+    if (!confirmation.isConfirmed) return;
+
+    try {
+        // Tampilkan loading
+        Swal.fire({
+            title: "Menghapus Category...",
+            text: "Mohon tunggu sebentar.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const response = await fetch(
+            `http://localhost:8080/api/private/categories/${encodeURIComponent(id)}`,
+            {
+                method: "DELETE",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json"
+                }
+            }
+        );
+
+        // DELETE dapat mengembalikan 204 tanpa response body
+        if (!response.ok) {
+            let errorMessage = `Gagal menghapus category (HTTP ${response.status}).`;
+
+            try {
+                const result = await response.json();
+                errorMessage = result.error || result.message || errorMessage;
+            } catch (_) {
+                // Respons bukan JSON atau body kosong
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        // Notifikasi berhasil
+        await Swal.fire({
+            icon: "success",
+            title: "Berhasil!",
+            text: `Category "${name}" berhasil dihapus.`,
+            confirmButtonText: "OK",
+            timer: 2000,
+            timerProgressBar: true
+        });
+
+        // Perbarui tabel
+        if (typeof loadCategories === "function") {
+            await loadCategories();
+        } else {
+            window.location.reload();
+        }
+
+    } catch (error) {
+        console.error("Error hapus category:", error);
+
+        Swal.fire({
+            icon: "error",
+            title: "Gagal Menghapus!",
+            text: error.message || "Terjadi kesalahan saat menghapus category.",
+            confirmButtonText: "Tutup"
+        });
+    }
+});
+
+//batas proses hapus category
 
 (async function checkLogin() {
     const API_URL = "http://localhost:8080";

@@ -13,7 +13,7 @@ import (
 	"gin-auth/internal/category"
 	"gin-auth/internal/database"
 	"gin-auth/internal/location"
-	"gin-auth/internal/middleware"
+	"gin-auth/internal/private"
 	"gin-auth/internal/public"
 
 	"github.com/gin-contrib/cors"
@@ -43,12 +43,6 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 		c.Next()
 	})
 
-	r.GET("/health", middleware.MockEndpoint("health"), func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"data": gin.H{"status": "ok"},
-		})
-	})
-
 	// Auth
 	authRepo := auth.NewRepository(db)
 	authService := auth.NewService(authRepo, secret)
@@ -59,37 +53,18 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	// Public routes
 	public.RegisterRoutes(r)
 
+	repo := auth.NewRepository(db)
+	service := auth.NewService(repo, secret)
+	handler := auth.NewHandler(service)
 	// Category
 	categoryRepo := category.NewRepository(db)
 	categoryService := category.NewService(categoryRepo)
 	categoryHandler := category.NewHandler(categoryService)
 
-	// Endpoint category dengan autentikasi
-	categoryRoutes := r.Group("/api/categories")
-	categoryRoutes.Use(authHandler.AuthReq())
-	{
-		categoryRoutes.POST("", categoryHandler.Create)
-		categoryRoutes.GET("", categoryHandler.ListCategory)
-		categoryRoutes.GET("/:id", categoryHandler.GetByID)
-		categoryRoutes.DELETE("/:id", categoryHandler.Delete)
-		categoryRoutes.PUT("/:id", categoryHandler.Update)
-	}
-
-	// Category
+	// location
 	locationRepo := location.NewRepository(db)
 	locationService := location.NewService(locationRepo)
 	locationHandler := location.NewHandler(locationService)
-
-	// Endpoint location dengan autentikasi
-	locationRoutes := r.Group("/api/location")
-	locationRoutes.Use(authHandler.AuthReq())
-	{
-		locationRoutes.POST("", locationHandler.Create)
-		locationRoutes.GET("", locationHandler.GetAllLoc)
-		locationRoutes.GET("/:id", locationHandler.GetLocByID)
-		locationRoutes.DELETE("/:id", locationHandler.Delete)
-		locationRoutes.PUT("/:id", locationHandler.Update)
-	}
 
 	// asset
 	assetRepo := asset.NewRepository(db)
@@ -99,16 +74,9 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 		locationRepo,
 	)
 	assetHandler := asset.NewHandler(assetService)
-	// Endpoint Asset dengan autentikasi
-	assetRoutes := r.Group("/api/assets")
-	assetRoutes.Use(authHandler.AuthReq())
-	{
-		assetRoutes.POST("", assetHandler.Create)
-		assetRoutes.GET("", assetHandler.List)
-		assetRoutes.GET("/:id", assetHandler.GetByID)
-		assetRoutes.DELETE("/:id", assetHandler.Delete)
-		assetRoutes.PUT("/:id", assetHandler.Update)
-	}
+
+	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler)
+
 	return r
 }
 

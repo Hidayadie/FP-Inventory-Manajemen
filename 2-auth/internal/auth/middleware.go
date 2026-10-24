@@ -55,7 +55,7 @@ func (h *Handler) AuthReq() gin.HandlerFunc {
 
 // RequireRole hanya melanjutkan request jika role user diizinkan.
 // Fungsi ini harus dipasang setelah AuthReq().
-func RequireRole(allowedRoles ...string) gin.HandlerFunc {
+func RequireRole(allowedRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		value, exists := c.Get("user")
 		if !exists {
@@ -65,25 +65,24 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		// Service.Authenticate() mengembalikan User, bukan *User.
 		user, ok := value.(User)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": "Data pengguna tidak valid",
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Data autentikasi tidak valid",
 			})
 			return
 		}
 
-		userRole := strings.ToLower(strings.TrimSpace(user.Role))
-		for _, allowedRole := range allowedRoles {
-			if userRole == strings.ToLower(strings.TrimSpace(allowedRole)) {
-				c.Next()
-				return
-			}
+		if !strings.EqualFold(
+			strings.TrimSpace(user.Role),
+			strings.TrimSpace(allowedRole),
+		) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "Anda tidak memiliki akses ke halaman ini",
+			})
+			return
 		}
 
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error": "Kamu tidak memiliki izin mengakses halaman ini",
-		})
+		c.Next()
 	}
 }

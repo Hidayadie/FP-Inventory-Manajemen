@@ -29,3 +29,37 @@ func (r *Repository) GetByID(ctx context.Context, id uint) (User, error) {
 	err := r.db.WithContext(ctx).First(&user, id).Error
 	return user, err
 }
+
+func (r *Repository) List(ctx context.Context) ([]User, error) {
+	var items []User
+
+	err := r.db.WithContext(ctx).
+		Order("id DESC").
+		Find(&items).Error
+
+	return items, err
+}
+
+func (r *Repository) Update(
+	ctx context.Context,
+	item *User,
+) error {
+	return r.db.WithContext(ctx).Save(item).Error
+}
+
+func (r *Repository) Delete(
+	ctx context.Context,
+	id uint,
+) error {
+	result := r.db.WithContext(ctx).Delete(&User{}, id)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
