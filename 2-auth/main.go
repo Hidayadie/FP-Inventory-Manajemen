@@ -8,12 +8,12 @@ import (
 	"os"
 	"time"
 
+	"gin-auth/internal/asset"
 	"gin-auth/internal/auth"
 	"gin-auth/internal/category"
 	"gin-auth/internal/database"
+	"gin-auth/internal/location"
 	"gin-auth/internal/middleware"
-	"gin-auth/internal/orders"
-	"gin-auth/internal/product"
 	"gin-auth/internal/public"
 
 	"github.com/gin-contrib/cors"
@@ -72,8 +72,43 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 		categoryRoutes.GET("", categoryHandler.ListCategory)
 		categoryRoutes.GET("/:id", categoryHandler.GetByID)
 		categoryRoutes.DELETE("/:id", categoryHandler.Delete)
+		categoryRoutes.PUT("/:id", categoryHandler.Update)
 	}
 
+	// Category
+	locationRepo := location.NewRepository(db)
+	locationService := location.NewService(locationRepo)
+	locationHandler := location.NewHandler(locationService)
+
+	// Endpoint location dengan autentikasi
+	locationRoutes := r.Group("/api/location")
+	locationRoutes.Use(authHandler.AuthReq())
+	{
+		locationRoutes.POST("", locationHandler.Create)
+		locationRoutes.GET("", locationHandler.GetAllLoc)
+		locationRoutes.GET("/:id", locationHandler.GetLocByID)
+		locationRoutes.DELETE("/:id", locationHandler.Delete)
+		locationRoutes.PUT("/:id", locationHandler.Update)
+	}
+
+	// asset
+	assetRepo := asset.NewRepository(db)
+	assetService := asset.NewService(
+		assetRepo,
+		categoryRepo,
+		locationRepo,
+	)
+	assetHandler := asset.NewHandler(assetService)
+	// Endpoint Asset dengan autentikasi
+	assetRoutes := r.Group("/api/assets")
+	assetRoutes.Use(authHandler.AuthReq())
+	{
+		assetRoutes.POST("", assetHandler.Create)
+		assetRoutes.GET("", assetHandler.List)
+		assetRoutes.GET("/:id", assetHandler.GetByID)
+		assetRoutes.DELETE("/:id", assetHandler.Delete)
+		assetRoutes.PUT("/:id", assetHandler.Update)
+	}
 	return r
 }
 
@@ -101,10 +136,9 @@ func run() error {
 
 	if err := db.AutoMigrate(
 		&auth.User{},
-		&product.Product{},
+		&location.Location{},
 		&category.Category{},
-		&orders.Order{},
-		&orders.OrderDetail{},
+		&asset.Asset{},
 	); err != nil {
 		return fmt.Errorf("migrasi tabel gagal: %w", err)
 	}

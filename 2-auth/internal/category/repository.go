@@ -167,3 +167,10 @@ func (r *Repository) DeleteCategoryByID(
 
 	return true, nil
 }
+
+func (r *Repository) Update(
+	ctx context.Context,
+	category *Category,
+) error {
+	return r.db.WithContext(ctx).Save(category).Error
+}

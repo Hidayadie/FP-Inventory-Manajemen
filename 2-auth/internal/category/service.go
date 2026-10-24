@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ErrInvalidCategory  = errors.New("nama category wajib diisi")
-	ErrDuplikatCategory = errors.New("Category sudah ada")
-	ErrCategoryNotFound = errors.New("Kategori tidak ditemukan")
+	ErrInvalidCategory  = errors.New("nama kategori wajib diisi")
+	ErrDuplikatCategory = errors.New("kategori sudah ada")
+	ErrCategoryNotFound = errors.New("kategori tidak ditemukan")
 )
 
 type Service struct {
@@ -25,6 +25,7 @@ type ItemInput struct {
 	Name string `json:"name" binding:"required"`
 }
 
+// Create menambahkan kategori baru.
 func (s *Service) Create(
 	ctx context.Context,
 	items []ItemInput,
@@ -33,7 +34,7 @@ func (s *Service) Create(
 		return Category{}, ErrInvalidCategory
 	}
 
-	// Validasi nama dan cek duplikat setiap kategori.
+	// Validasi nama dan cek duplikat.
 	for i := range items {
 		items[i].Name = strings.TrimSpace(items[i].Name)
 
@@ -54,11 +55,83 @@ func (s *Service) Create(
 	return s.repo.Create(ctx, items)
 }
 
-func (s *Service) ListCategory(ctx context.Context, ID int) ([]Category, error) {
+// ListCategory mengambil daftar kategori.
+func (s *Service) ListCategory(
+	ctx context.Context,
+	ID int,
+) ([]Category, error) {
 	return s.repo.ListCategory(ctx, ID)
 }
-func (s *Service) GetCategoryByID(ctx context.Context, id int) (*Category, error) {
-	return s.repo.GetCategoryByID(ctx, id)
+
+// GetCategoryByID mengambil kategori berdasarkan ID.
+func (s *Service) GetCategoryByID(
+	ctx context.Context,
+	id int,
+) (*Category, error) {
+	if id <= 0 {
+		return nil, ErrCategoryNotFound
+	}
+
+	category, err := s.repo.GetCategoryByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if category == nil {
+		return nil, ErrCategoryNotFound
+	}
+
+	return category, nil
+}
+
+// Update memperbarui nama kategori berdasarkan ID.
+func (s *Service) Update(
+	ctx context.Context,
+	id int,
+	input ItemInput,
+) (Category, error) {
+	if id <= 0 {
+		return Category{}, ErrCategoryNotFound
+	}
+
+	// Validasi nama kategori.
+	input.Name = strings.TrimSpace(input.Name)
+	if input.Name == "" {
+		return Category{}, ErrInvalidCategory
+	}
+
+	// Pastikan kategori tersedia.
+	category, err := s.repo.GetCategoryByID(ctx, id)
+	if err != nil {
+		return Category{}, err
+	}
+
+	if category == nil {
+		return Category{}, ErrCategoryNotFound
+	}
+
+	// Cek apakah nama sudah digunakan.
+	exists, err := s.repo.ExistsByName(ctx, input.Name)
+	if err != nil {
+		return Category{}, err
+	}
+
+	// Izinkan kategori tetap menggunakan namanya sendiri.
+	if exists && !strings.EqualFold(
+		strings.TrimSpace(category.Name),
+		input.Name,
+	) {
+		return Category{}, ErrDuplikatCategory
+	}
+
+	// Perbarui data kategori.
+	category.Name = input.Name
+
+	if err := s.repo.Update(ctx, category); err != nil {
+		return Category{}, err
+	}
+
+	return *category, nil
 }
 
 // Delete menghapus kategori berdasarkan ID.
@@ -67,7 +140,7 @@ func (s *Service) Delete(
 	id uint,
 ) error {
 	if id == 0 {
-		return ErrInvalidCategory
+		return ErrCategoryNotFound
 	}
 
 	deleted, err := s.repo.DeleteCategoryByID(ctx, int(id))
