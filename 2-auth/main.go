@@ -11,6 +11,7 @@ import (
 	"gin-auth/internal/asset"
 	"gin-auth/internal/auth"
 	"gin-auth/internal/category"
+	"gin-auth/internal/dashboard"
 	"gin-auth/internal/database"
 	"gin-auth/internal/location"
 	"gin-auth/internal/private"
@@ -75,7 +76,12 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	)
 	assetHandler := asset.NewHandler(assetService)
 
-	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler)
+	//dashboard
+	dashboardRepo := dashboard.NewRepository(db)
+	dashboardService := dashboard.NewService(dashboardRepo)
+	dashboardHandler := dashboard.NewHandler(dashboardService)
+
+	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler, dashboardHandler)
 
 	return r
 }

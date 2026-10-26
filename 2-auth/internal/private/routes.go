@@ -5,6 +5,7 @@ import (
 
 	"gin-auth/internal/asset"
 	"gin-auth/internal/category"
+	"gin-auth/internal/dashboard"
 	"gin-auth/internal/location"
 	"gin-auth/internal/middleware"
 
@@ -17,6 +18,7 @@ func RegisterRoutes(
 	categoryHandler *category.Handler,
 	locationHandler *location.Handler,
 	assetHandler *asset.Handler,
+	dashboardHandler *dashboard.Handler,
 ) {
 	group := r.Group("/api/private")
 	group.Use(requireAuth)
@@ -24,6 +26,7 @@ func RegisterRoutes(
 	category.RegisterRoutes(group, categoryHandler)
 	location.RegisterRoutes(group, locationHandler)
 	asset.RegisterRoutes(group, assetHandler)
+	dashboard.RegisterRoutes(group, dashboardHandler)
 	group.GET("/profile",
 		middleware.MockEndpoint("private.profile"),
 		func(c *gin.Context) {

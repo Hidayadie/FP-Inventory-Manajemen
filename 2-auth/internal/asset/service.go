@@ -132,7 +132,6 @@ func (s *Service) Create(
 		Status:      input.Status,
 		Description: input.Description,
 		QtyIn:       input.QtyIn,
-		IsDeleted:   false,
 	}
 
 	if err := s.repo.Create(ctx, item); err != nil {

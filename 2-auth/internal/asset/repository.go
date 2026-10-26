@@ -27,7 +27,7 @@ func (r *Repository) ExistsByCode(
 	query := r.db.WithContext(ctx).
 		Model(&Asset{}).
 		Where("LOWER(TRIM(code_asset)) = LOWER(?)", strings.TrimSpace(code)).
-		Where("is_deleted = ?", false)
+		Where("status = ?", true)
 
 	if excludeID > 0 {
 		query = query.Where("asset_id <> ?", excludeID)
@@ -57,7 +57,7 @@ func (r *Repository) List(
 	err := r.db.WithContext(ctx).
 		Preload("Category").
 		Preload("Location").
-		Where("is_deleted = ?", false).
+		Where("status = ?", true).
 		Order("asset_id DESC").
 		Find(&items).Error
 
@@ -74,7 +74,7 @@ func (r *Repository) GetByID(
 	err := r.db.WithContext(ctx).
 		Preload("Category").
 		Preload("Location").
-		Where("is_deleted = ?", false).
+		Where("status = ?", true).
 		First(&item, "asset_id = ?", id).Error
 
 	if err == gorm.ErrRecordNotFound {
@@ -95,7 +95,7 @@ func (r *Repository) Update(
 ) error {
 	result := r.db.WithContext(ctx).
 		Model(&Asset{}).
-		Where("asset_id = ? AND is_deleted = ?", id, false).
+		Where("asset_id = ? AND status = ?", id, true).
 		Updates(map[string]interface{}{
 			"code_asset":  input.CodeAsset,
 			"nama_asset":  input.NamaAsset,
@@ -125,10 +125,10 @@ func (r *Repository) Delete(
 ) error {
 	result := r.db.WithContext(ctx).
 		Model(&Asset{}).
-		Where("asset_id = ? AND is_deleted = ?", id, false).
+		Where("asset_id = ? AND status = ?", id, true).
 		Updates(map[string]interface{}{
-			"is_deleted": true,
-			"update_at":  time.Now(),
+			"status":    true,
+			"update_at": time.Now(),
 		})
 
 	if result.Error != nil {

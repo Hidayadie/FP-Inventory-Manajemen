@@ -25,7 +25,7 @@ type Asset struct {
 	Description string    `json:"description" gorm:"column:description"`
 	QtyIn       int       `json:"qty_in" gorm:"column:qty_in"`
 	UpdateAt    time.Time `json:"update_at" gorm:"column:update_at;autoUpdateTime"`
-	IsDeleted   bool      `json:"is_deleted" gorm:"column:is_deleted;not null;default:false"`
+	CreatedAt   bool      `json:"create_at" gorm:"column:update_at;autoUpdateTime"`
 }
 
 func (Asset) TableName() string {
