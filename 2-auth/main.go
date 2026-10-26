@@ -119,6 +119,7 @@ func run() error {
 		&location.Location{},
 		&category.Category{},
 		&asset.Asset{},
+		&complaint.Complaint{},
 	); err != nil {
 		return fmt.Errorf("migrasi tabel gagal: %w", err)
 	}
