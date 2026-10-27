@@ -3,6 +3,7 @@ package complaint
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,24 +19,26 @@ func NewService(repository *Repository) *Service {
 }
 
 type CreateComplaintRequest struct {
-	UserID      uint    `json:"userID" binding:"required"`
-	AssetID     uint    `json:"assetID" binding:"required"`
-	Title       string  `json:"title" binding:"required"`
-	Description string  `json:"description" binding:"required"`
-	Priority    float64 `json:"priority"`
-	Status      string  `json:"status"`
-	Note        string  `json:"note"`
+	UserID      uint    `json:"userID" form:"userID" binding:"required"`
+	AssetID     uint    `json:"assetID" form:"assetID" binding:"required"`
+	Title       string  `json:"title" form:"title" binding:"required"`
+	Description string  `json:"description" form:"description" binding:"required"`
+	Priority    float64 `json:"priority" form:"priority"`
+	Status      string  `json:"status" form:"status"`
+	Note        string  `json:"note" form:"note"`
+	ImagePath   string  `json:"-" form:"-"`
 }
 
 type UpdateComplaintRequest struct {
-	UserID      uint    `json:"userID" binding:"required"`
-	AssetID     uint    `json:"assetID" binding:"required"`
-	Title       string  `json:"title" binding:"required"`
-	Description string  `json:"description" binding:"required"`
-	Priority    float64 `json:"priority"`
-	Status      string  `json:"status" binding:"required"`
-	Note        string  `json:"note"`
-	IsFixed     bool    `json:"is_fixed"`
+	UserID      uint    `json:"userID" form:"userID" binding:"required"`
+	AssetID     uint    `json:"assetID" form:"assetID" binding:"required"`
+	Title       string  `json:"title" form:"title" binding:"required"`
+	Description string  `json:"description" form:"description" binding:"required"`
+	Priority    float64 `json:"priority" form:"priority"`
+	Status      string  `json:"status" form:"status" binding:"required"`
+	Note        string  `json:"note" form:"note"`
+	IsFixed     bool    `json:"is_fixed" form:"is_fixed"`
+	ImagePath   string  `json:"-" form:"-"`
 }
 
 func (s *Service) Create(req CreateComplaintRequest) (*Complaint, error) {
@@ -72,6 +75,7 @@ func (s *Service) Create(req CreateComplaintRequest) (*Complaint, error) {
 		Status:      status,
 		Note:        req.Note,
 		IsFixed:     false,
+		ImagePath:   req.ImagePath,
 	}
 
 	if err := s.repository.Create(c); err != nil {
@@ -104,7 +108,10 @@ func (s *Service) Update(id string, req UpdateComplaintRequest) (*Complaint, err
 		return nil, errors.New("priority harus antara 0 dan 1")
 	}
 
-	if req.Status != "low" && req.Status != "medium" &&
+	req.Status = strings.ToLower(strings.TrimSpace(req.Status))
+	if req.IsFixed {
+		req.Status = "resolved"
+	} else if req.Status != "low" && req.Status != "medium" &&
 		req.Status != "high" && req.Status != "critical" {
 		return nil, errors.New("status harus low, medium, high, atau critical")
 	}
@@ -113,6 +120,8 @@ func (s *Service) Update(id string, req UpdateComplaintRequest) (*Complaint, err
 	if err != nil {
 		return nil, err
 	}
+
+	oldImagePath := c.ImagePath
 
 	c.UserID = req.UserID
 	c.AssetID = req.AssetID
@@ -123,12 +132,21 @@ func (s *Service) Update(id string, req UpdateComplaintRequest) (*Complaint, err
 	c.Note = req.Note
 	c.IsFixed = req.IsFixed
 
+	if req.ImagePath != "" {
+		c.ImagePath = req.ImagePath
+	}
+
 	if c.IsFixed {
 		c.Status = "resolved"
 	}
 
 	if err := s.repository.Update(c); err != nil {
 		return nil, err
+	}
+
+	// Hapus file gambar lama setelah gambar baru berhasil disimpan.
+	if req.ImagePath != "" && oldImagePath != "" && oldImagePath != req.ImagePath {
+		removeComplaintImage(oldImagePath)
 	}
 
 	return c, nil
@@ -145,7 +163,12 @@ func (s *Service) Delete(id string) error {
 		return err
 	}
 
-	return s.repository.Delete(c.ID)
+	if err := s.repository.Delete(c.ID); err != nil {
+		return err
+	}
+
+	removeComplaintImage(c.ImagePath)
+	return nil
 }
 
 // Mempermudah handler membedakan data tidak ditemukan.

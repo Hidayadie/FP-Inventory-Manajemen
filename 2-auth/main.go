@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"gin-auth/internal/asset"
@@ -26,6 +27,10 @@ import (
 
 func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	r := gin.Default()
+	r.MaxMultipartMemory = 8 << 20
+
+	// Sajikan gambar hasil upload (mis. /uploads/complaints/<uuid>.jpg).
+	r.Static("/uploads", "uploads")
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8081"},
@@ -37,10 +42,16 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	}))
 
 	r.Use(func(c *gin.Context) {
+		// Request multipart (upload gambar) membutuhkan batas lebih besar dari JSON.
+		limit := int64(1 << 20)
+		if strings.HasPrefix(strings.ToLower(c.ContentType()), "multipart/form-data") {
+			limit = 6 << 20
+		}
+
 		c.Request.Body = http.MaxBytesReader(
 			c.Writer,
 			c.Request.Body,
-			1<<20,
+			limit,
 		)
 		c.Next()
 	})

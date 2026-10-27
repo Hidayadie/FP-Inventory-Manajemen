@@ -18,15 +18,26 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateComplaintRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Mendukung JSON (tanpa gambar) maupun multipart/form-data dengan field "image".
+	imagePath, err := saveComplaintImage(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.ShouldBind(&req); err != nil {
+		removeComplaintImage(imagePath)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Format JSON tidak valid atau field wajib belum diisi",
+			"error": "Format data tidak valid atau field wajib belum diisi",
 		})
 		return
 	}
 
+	req.ImagePath = imagePath
+
 	result, err := h.service.Create(req)
 	if err != nil {
+		removeComplaintImage(imagePath)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -73,15 +84,27 @@ func (h *Handler) FindByID(c *gin.Context) {
 func (h *Handler) Update(c *gin.Context) {
 	var req UpdateComplaintRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Gambar baru bersifat opsional; jika tidak dikirim, gambar lama dipertahankan.
+	imagePath, err := saveComplaintImage(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.ShouldBind(&req); err != nil {
+		removeComplaintImage(imagePath)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Format JSON tidak valid atau field wajib belum diisi",
+			"error": "Format data tidak valid atau field wajib belum diisi",
 		})
 		return
 	}
 
+	req.ImagePath = imagePath
+
 	result, err := h.service.Update(c.Param("id"), req)
 	if err != nil {
+		removeComplaintImage(imagePath)
+
 		if IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "Keluhan tidak ditemukan",

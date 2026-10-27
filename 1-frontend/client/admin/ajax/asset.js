@@ -3,6 +3,7 @@
  */
 
 const API_BASE = "http://localhost:8080/api/private";
+
 const ASSET_URL = `${API_BASE}/assets`;
 const CATEGORY_URL = `${API_BASE}/categories`;
 const LOCATION_URL = `${API_BASE}/location`;

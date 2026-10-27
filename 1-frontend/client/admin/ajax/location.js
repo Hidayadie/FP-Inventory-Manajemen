@@ -226,10 +226,10 @@ $(document).ready(function () {
             .attr("data-name", name)
             .html('<i class="bi bi-trash"></i>')
             .appendTo($actionGroup);
-
+            
             $actionTd.append($actionGroup);
             $row.append($actionTd);
-
+            
             $tableBody.append($row);
         });
 
