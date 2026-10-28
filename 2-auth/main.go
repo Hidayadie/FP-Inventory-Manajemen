@@ -20,6 +20,8 @@ import (
 	"gin-auth/internal/location"
 	"gin-auth/internal/private"
 	"gin-auth/internal/public"
+	"gin-auth/internal/textanalysis"
+	"gin-auth/internal/user"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -31,7 +33,7 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
 
-	// Sajikan gambar hasil upload (mis. /uploads/complaints/<uuid>.jpg).
+	// Sajikan gambar hasil upload.
 	r.Static("/uploads", "uploads")
 
 	r.Use(cors.New(cors.Config{
@@ -44,9 +46,13 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	}))
 
 	r.Use(func(c *gin.Context) {
-		// Request multipart (upload gambar) membutuhkan batas lebih besar dari JSON.
+		// Batas request JSON dan multipart upload.
 		limit := int64(1 << 20)
-		if strings.HasPrefix(strings.ToLower(c.ContentType()), "multipart/form-data") {
+
+		if strings.HasPrefix(
+			strings.ToLower(c.ContentType()),
+			"multipart/form-data",
+		) {
 			limit = 6 << 20
 		}
 
@@ -55,33 +61,47 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 			c.Request.Body,
 			limit,
 		)
+
 		c.Next()
 	})
 
-	// Auth
+	// =========================
+	// AUTH
+	// =========================
 	authRepo := auth.NewRepository(db)
 	authService := auth.NewService(authRepo, secret)
 	authHandler := auth.NewHandler(authService)
 
 	auth.RegisterRoutes(r, authHandler)
 
-	// Public routes
+	// =========================
+	// PUBLIC ROUTES
+	// =========================
 	public.RegisterRoutes(r)
 
+	// Repository auth digunakan kembali oleh
+	// middleware dan modul peminjaman aset.
 	repo := auth.NewRepository(db)
 	service := auth.NewService(repo, secret)
 	handler := auth.NewHandler(service)
-	// Category
+
+	// =========================
+	// CATEGORY
+	// =========================
 	categoryRepo := category.NewRepository(db)
 	categoryService := category.NewService(categoryRepo)
 	categoryHandler := category.NewHandler(categoryService)
 
-	// location
+	// =========================
+	// LOCATION
+	// =========================
 	locationRepo := location.NewRepository(db)
 	locationService := location.NewService(locationRepo)
 	locationHandler := location.NewHandler(locationService)
 
-	// asset
+	// =========================
+	// ASSET
+	// =========================
 	assetRepo := asset.NewRepository(db)
 	assetService := asset.NewService(
 		assetRepo,
@@ -90,27 +110,71 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	)
 	assetHandler := asset.NewHandler(assetService)
 
-	//dashboard
+	// =========================
+	// DASHBOARD
+	// =========================
 	dashboardRepo := dashboard.NewRepository(db)
 	dashboardService := dashboard.NewService(dashboardRepo)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
 
-	//complaint
+	// =========================
+	// COMPLAINT
+	// =========================
 	complaintRepo := complaint.NewRepository(db)
 	complaintService := complaint.NewService(complaintRepo)
 	complaintHandler := complaint.NewHandler(complaintService)
 
-	// asset-broken
+	// =========================
+	// ASSET BROKEN
+	// =========================
 	assetBrokenRepo := assetbroken.NewRepository(db)
-	assetBrokenService := assetbroken.NewService(assetBrokenRepo, assetRepo)
+	assetBrokenService := assetbroken.NewService(
+		assetBrokenRepo,
+		assetRepo,
+	)
 	assetBrokenHandler := assetbroken.NewHandler(assetBrokenService)
 
-	// asset-lending
+	// =========================
+	// ASSET LENDING
+	// =========================
 	assetLendingRepo := assetlending.NewRepository(db)
-	assetLendingService := assetlending.NewService(assetLendingRepo, assetRepo, repo)
+	assetLendingService := assetlending.NewService(
+		assetLendingRepo,
+		assetRepo,
+		repo,
+	)
 	assetLendingHandler := assetlending.NewHandler(assetLendingService)
 
-	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler, dashboardHandler, complaintHandler, assetBrokenHandler, assetLendingHandler)
+	// =========================
+	// USER
+	// =========================
+	userRepo := user.NewRepository(db)
+	userService := user.NewService(userRepo)
+	userHandler := user.NewHandler(userService)
+
+	// =========================
+	// TEXT ANALYSIS: TF-IDF + K-MEANS
+	// =========================
+	textAnalysisRepo := textanalysis.NewRepository(db)
+	textAnalysisService := textanalysis.NewService(textAnalysisRepo)
+	textAnalysisHandler := textanalysis.NewHandler(textAnalysisService)
+
+	// =========================
+	// PRIVATE ROUTES
+	// =========================
+	private.RegisterRoutes(
+		r,
+		handler.AuthReq(),
+		categoryHandler,
+		locationHandler,
+		assetHandler,
+		dashboardHandler,
+		complaintHandler,
+		assetBrokenHandler,
+		assetLendingHandler,
+		userHandler,
+		textAnalysisHandler,
+	)
 
 	return r
 }
@@ -137,7 +201,7 @@ func run() error {
 	}
 	defer conn.Close()
 
-	// Migrasi tabel secara bertahap untuk mengetahui sumber error.
+	// Migrasi tabel secara bertahap.
 	migrations := []struct {
 		name  string
 		model interface{}
@@ -154,6 +218,12 @@ func run() error {
 		log.Printf("Memulai migrasi model: %s", migration.name)
 
 		if err := db.AutoMigrate(migration.model); err != nil {
+			log.Printf(
+				"Detail error migrasi %s: %v",
+				migration.name,
+				err,
+			)
+
 			return fmt.Errorf(
 				"migrasi model %s gagal: %w",
 				migration.name,
@@ -163,6 +233,7 @@ func run() error {
 
 		log.Printf("Migrasi model %s berhasil", migration.name)
 	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

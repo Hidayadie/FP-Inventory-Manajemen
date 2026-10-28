@@ -38,6 +38,7 @@ type CreateAssetRusakInput struct {
 	QtyRusak    int    `json:"qty_rusak" binding:"required,gt=0"`
 	Status      string `json:"status" binding:"required"`
 	StatusRusak bool   `json:"status_rusak"`
+	IsRepaired  bool   `json:"isRepaired"`
 	Description string `json:"description"`
 }
 
@@ -47,6 +48,7 @@ type UpdateAssetRusakInput struct {
 	QtyRusak    int    `json:"qty_rusak" binding:"required,gt=0"`
 	Status      string `json:"status" binding:"required"`
 	StatusRusak bool   `json:"status_rusak"`
+	IsRepaired  bool   `json:"isRepaired"`
 	Description string `json:"description"`
 }
 
@@ -98,6 +100,7 @@ func (s *Service) Create(
 		QtyRusak:    input.QtyRusak,
 		Status:      input.Status,
 		StatusRusak: input.StatusRusak,
+		IsRepaired:  input.IsRepaired,
 		Description: strings.TrimSpace(input.Description),
 	}
 
@@ -253,6 +256,7 @@ func (s *Service) Update(
 			QtyRusak:    input.QtyRusak,
 			Status:      input.Status,
 			StatusRusak: input.StatusRusak,
+			IsRepaired:  input.IsRepaired,
 			Description: strings.TrimSpace(input.Description),
 		}
 

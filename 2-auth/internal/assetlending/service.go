@@ -9,6 +9,7 @@ import (
 
 	"gin-auth/internal/asset"
 	"gin-auth/internal/auth"
+
 	"gorm.io/gorm"
 )
 
@@ -69,19 +70,16 @@ func normalizeStatus(raw string, allowReturned bool) (string, error) {
 }
 
 func (s *Service) validateUser(ctx context.Context, id uint) error {
-	user, err := s.authRepo.GetByID(ctx, id)
+	_, err := s.authRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrUserNotFound
 		}
 		return fmt.Errorf("cek pengguna: %w", err)
 	}
-	if user == nil {
-		return ErrUserNotFound
-	}
+
 	return nil
 }
-
 func (s *Service) getAsset(ctx context.Context, id uint) (*asset.Asset, error) {
 	item, err := s.assetRepo.GetByID(ctx, id)
 	if err != nil {

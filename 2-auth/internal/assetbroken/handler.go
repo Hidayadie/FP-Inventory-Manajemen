@@ -2,6 +2,8 @@ package assetbroken
 
 import (
 	"errors"
+	"fmt"
+	"gin-auth/internal/dashboard"
 	"log"
 	"net/http"
 	"strconv"
@@ -64,8 +66,7 @@ func parseID(c *gin.Context) (uint, error) {
 }
 
 // POST /api/private/asset-broken
-// POST /api/private/asset-broken
-// POST /api/private/asset-broken
+
 func (h *Handler) Create(c *gin.Context) {
 	var input CreateAssetRusakInput
 
@@ -80,11 +81,12 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	log.Printf(
-		"[AssetBroken Create] Request: code=%s asset_id=%d qty=%d status=%s",
+		"[AssetBroken Create] Request: code=%s asset_id=%d qty=%d status=%s isRepaired=%t",
 		input.CodeRusak,
 		input.AssetID,
 		input.QtyRusak,
 		input.Status,
+		input.IsRepaired,
 	)
 
 	item, err := h.service.Create(c.Request.Context(), input)
@@ -92,6 +94,25 @@ func (h *Handler) Create(c *gin.Context) {
 		log.Printf("[AssetBroken Create] Service error: %+v", err)
 		h.handleError(c, err)
 		return
+	}
+
+	// Catat aktivitas setelah pencatatan kerusakan berhasil.
+	activityDescription := fmt.Sprintf(
+		"Mencatat kerusakan aset: %s (Asset ID: %d, jumlah rusak: %d, status: %s)",
+		input.CodeRusak,
+		input.AssetID,
+		input.QtyRusak,
+		input.Status,
+	)
+
+	if err := dashboard.AddActivity(
+		"asset_broken_created",
+		activityDescription,
+	); err != nil {
+		log.Printf(
+			"[AssetBroken Create] Gagal mencatat aktivitas: %v",
+			err,
+		)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -133,6 +154,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 }
 
 // PUT /api/private/asset-broken/:id
+
 func (h *Handler) Update(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
@@ -152,6 +174,25 @@ func (h *Handler) Update(c *gin.Context) {
 	if err != nil {
 		h.handleError(c, err)
 		return
+	}
+
+	// Catat aktivitas setelah data kerusakan berhasil diperbarui.
+	activityDescription := fmt.Sprintf(
+		"Memperbarui kerusakan aset: %s (Asset ID: %d, jumlah rusak: %d, status: %s)",
+		input.CodeRusak,
+		input.AssetID,
+		input.QtyRusak,
+		input.Status,
+	)
+
+	if err := dashboard.AddActivity(
+		"asset_broken_updated",
+		activityDescription,
+	); err != nil {
+		log.Printf(
+			"[AssetBroken Update] Gagal mencatat aktivitas: %v",
+			err,
+		)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

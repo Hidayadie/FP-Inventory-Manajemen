@@ -115,6 +115,7 @@ func (r *Repository) Update(
 			"qty_rusak":    input.QtyRusak,
 			"status":       input.Status,
 			"status_rusak": input.StatusRusak,
+			"is_repaired":  input.IsRepaired,
 			"description":  input.Description,
 		})
 

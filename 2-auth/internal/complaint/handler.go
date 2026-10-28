@@ -1,6 +1,8 @@
 package complaint
 
 import (
+	"fmt"
+	"gin-auth/internal/dashboard"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,10 +22,12 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateComplaintRequest
 
-	// Mendukung JSON (tanpa gambar) maupun multipart/form-data dengan field "image".
+	// Mendukung JSON maupun multipart/form-data dengan field "image".
 	imagePath, err := saveComplaintImage(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -40,8 +44,24 @@ func (h *Handler) Create(c *gin.Context) {
 	result, err := h.service.Create(req)
 	if err != nil {
 		removeComplaintImage(imagePath)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
+	}
+
+	// Catat aktivitas setelah keluhan berhasil dibuat.
+	activityDescription := fmt.Sprintf(
+		"Membuat keluhan: %s. Deskripsi: %s",
+		req.Title,
+		req.Description,
+	)
+
+	if err := dashboard.AddActivity(
+		"complaint_created",
+		activityDescription,
+	); err != nil {
+		log.Printf("Gagal mencatat aktivitas keluhan: %v", err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -89,10 +109,13 @@ func (h *Handler) FindByID(c *gin.Context) {
 func (h *Handler) Update(c *gin.Context) {
 	var req UpdateComplaintRequest
 
-	// Gambar baru bersifat opsional; jika tidak dikirim, gambar lama dipertahankan.
+	// Gambar baru bersifat opsional; jika tidak dikirim,
+	// gambar lama dipertahankan sesuai logika service.
 	imagePath, err := saveComplaintImage(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -117,8 +140,24 @@ func (h *Handler) Update(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
+	}
+
+	// Catat aktivitas setelah keluhan berhasil diperbarui.
+	activityDescription := fmt.Sprintf(
+		"Memperbarui keluhan: %s. Deskripsi: %s",
+		req.Title,
+		req.Description,
+	)
+
+	if err := dashboard.AddActivity(
+		"complaint_updated",
+		activityDescription,
+	); err != nil {
+		log.Printf("Gagal mencatat aktivitas keluhan: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

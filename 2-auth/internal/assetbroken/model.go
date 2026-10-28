@@ -24,6 +24,7 @@ type AssetRusak struct {
 
 	// true = tidak bisa diperbaiki / tidak worth it
 	StatusRusak bool   `json:"status_rusak" gorm:"column:status_rusak;not null;default:false"`
+	IsRepaired  bool   `json:"isRepaired" gorm:"column:is_repaired;not null;default:false"`
 	Description string `json:"description" gorm:"type:text"`
 
 	CreatedAt time.Time `json:"create_at" gorm:"column:create_at;autoCreateTime"`

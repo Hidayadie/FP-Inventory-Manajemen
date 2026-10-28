@@ -2,6 +2,8 @@ package assetlending
 
 import (
 	"errors"
+	"fmt"
+	"gin-auth/internal/dashboard"
 	"log"
 	"net/http"
 	"strconv"
@@ -45,16 +47,40 @@ func parseID(c *gin.Context) (uint, error) {
 
 func (h *Handler) Create(c *gin.Context) {
 	var input CreateLendingInput
+
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Format JSON atau data peminjaman tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Format JSON atau data peminjaman tidak valid",
+		})
 		return
 	}
+
 	item, err := h.service.Create(c.Request.Context(), input)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Transaksi peminjaman aset berhasil dibuat", "data": item})
+
+	// Catat aktivitas setelah peminjaman berhasil dibuat.
+	activityDescription := fmt.Sprintf(
+		"Membuat transaksi peminjaman aset. Asset ID: %v",
+		input.AssetID,
+	)
+
+	if err := dashboard.AddActivity(
+		"asset_lending_created",
+		activityDescription,
+	); err != nil {
+		log.Printf(
+			"[AssetLending Create] Gagal mencatat aktivitas: %v",
+			err,
+		)
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Transaksi peminjaman aset berhasil dibuat",
+		"data":    item,
+	})
 }
 
 func (h *Handler) List(c *gin.Context) {
@@ -86,19 +112,48 @@ func (h *Handler) ReturnAsset(c *gin.Context) {
 		h.handleError(c, err)
 		return
 	}
+
 	var input ReturnLendingInput
+
 	if c.Request.ContentLength > 0 {
 		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Format tanggal pengembalian tidak valid"})
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Format tanggal pengembalian tidak valid",
+			})
 			return
 		}
 	}
-	item, err := h.service.ReturnAsset(c.Request.Context(), id, input)
+
+	item, err := h.service.ReturnAsset(
+		c.Request.Context(),
+		id,
+		input,
+	)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Aset berhasil dikembalikan dan stok telah ditambahkan kembali", "data": item})
+
+	// Catat aktivitas setelah pengembalian berhasil.
+	activityDescription := fmt.Sprintf(
+		"Mengembalikan aset pada transaksi peminjaman ID: %v",
+		id,
+	)
+
+	if err := dashboard.AddActivity(
+		"asset_lending_returned",
+		activityDescription,
+	); err != nil {
+		log.Printf(
+			"[AssetLending ReturnAsset] Gagal mencatat aktivitas: %v",
+			err,
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Aset berhasil dikembalikan dan stok telah ditambahkan kembali",
+		"data":    item,
+	})
 }
 
 func (h *Handler) Update(c *gin.Context) {
@@ -107,17 +162,41 @@ func (h *Handler) Update(c *gin.Context) {
 		h.handleError(c, err)
 		return
 	}
+
 	var input UpdateLendingInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Format JSON atau data peminjaman tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Format JSON atau data peminjaman tidak valid",
+		})
 		return
 	}
+
 	item, err := h.service.Update(c.Request.Context(), id, input)
 	if err != nil {
 		h.handleError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Data peminjaman berhasil diperbarui", "data": item})
+
+	// Catat aktivitas setelah peminjaman berhasil diperbarui.
+	activityDescription := fmt.Sprintf(
+		"Memperbarui data peminjaman aset dengan ID transaksi: %v",
+		id,
+	)
+
+	if err := dashboard.AddActivity(
+		"asset_lending_updated",
+		activityDescription,
+	); err != nil {
+		log.Printf(
+			"[AssetLending Update] Gagal mencatat aktivitas: %v",
+			err,
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Data peminjaman berhasil diperbarui",
+		"data":    item,
+	})
 }
 
 func (h *Handler) Delete(c *gin.Context) {
