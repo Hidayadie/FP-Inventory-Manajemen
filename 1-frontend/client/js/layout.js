@@ -7,15 +7,24 @@
     // ==========================================
     const API_BASE_URL = "http://localhost:8080";
     const LOGIN_URL = "http://localhost:8081/login.html";
-    const SIDEBAR_URL = "../components/sidebar.html";
 
-    const ROLE_DASHBOARDS = {
-        admin: "http://localhost:8081/client/admin/dashboard.html",
-        teknisi: "http://localhost:8081/client/teknisi/dashboard.html",
-        user: "http://localhost:8081/client/user/dashboard.html"
+    // Sidebar berdasarkan role
+    const SIDEBAR_URLS = {
+        admin: "../components/sidebar.html",
+        user: "../components/sidebar-user.html",
+        teknisi: "../components/sidebar-teknisi.html"
     };
 
-    // Hindari inisialisasi berulang
+    // Dashboard berdasarkan role
+    const ROLE_DASHBOARDS = {
+        admin: "http://localhost:8081/client/admin/dashboard.html",
+        user: "http://localhost:8081/client/user/dashboard.html",
+        teknisi: "http://localhost:8081/client/teknisi/dashboard.html"
+    };
+
+    // ==========================================
+    // CEGAH INISIALISASI BERULANG
+    // ==========================================
     if (window.layoutInitialized) return;
 
     window.layoutInitialized = true;
@@ -23,7 +32,7 @@
     window.currentUser = null;
 
     // ==========================================
-    // REDIRECT
+    // REDIRECT KE LOGIN
     // ==========================================
     function redirectToLogin(
         message = "Sesi login berakhir. Silakan login kembali."
@@ -31,10 +40,6 @@
         if (window.isRedirecting) return;
 
         window.isRedirecting = true;
-
-        const redirect = () => {
-            window.location.replace(LOGIN_URL);
-        };
 
         if (typeof Swal !== "undefined") {
             Swal.fire({
@@ -44,10 +49,12 @@
                 confirmButtonText: "Login Kembali",
                 allowOutsideClick: false,
                 allowEscapeKey: false
-            }).then(redirect);
+            }).then(() => {
+                window.location.replace(LOGIN_URL);
+            });
         } else {
             alert(message);
-            redirect();
+            window.location.replace(LOGIN_URL);
         }
     }
 
@@ -66,7 +73,7 @@
     }
 
     // ==========================================
-    // DETEKSI ROLE YANG DIPERLUKAN HALAMAN
+    // DETEKSI ROLE HALAMAN
     // ==========================================
     function getRequiredRole() {
         const path = window.location.pathname
@@ -119,6 +126,12 @@
                     response.status
                 );
 
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal Memeriksa Login",
+                    text: "Tidak dapat memverifikasi akun. Silakan coba lagi."
+                });
+
                 return false;
             }
 
@@ -137,15 +150,17 @@
                 .trim()
                 .toLowerCase();
 
-            // Hanya role yang diizinkan
-            if (!Object.prototype.hasOwnProperty.call(
-                ROLE_DASHBOARDS,
-                role
-            )) {
+            // Validasi role yang diperbolehkan
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    ROLE_DASHBOARDS,
+                    role
+                )
+            ) {
                 console.error("[AUTH] Role tidak dikenal:", role);
 
                 redirectToLogin(
-                    "Role akun tidak dikenali. Silakan hubungi administrator."
+                    "Role akun tidak dikenali. Hubungi administrator."
                 );
 
                 return false;
@@ -157,7 +172,7 @@
             console.log("[AUTH] Login valid. Role:", role);
 
             // ==========================================
-            // CEK ROLE TERHADAP HALAMAN YANG DIAKSES
+            // PROTEKSI HALAMAN BERDASARKAN ROLE
             // ==========================================
             const requiredRole = getRequiredRole();
 
@@ -174,8 +189,7 @@
             }
 
             // ==========================================
-            // HALAMAN DASHBOARD UMUM
-            // Arahkan ke dashboard sesuai role
+            // REDIRECT DASHBOARD UMUM
             // ==========================================
             if (!requiredRole) {
                 const currentPath = window.location.pathname
@@ -204,8 +218,28 @@
                 error
             );
 
+            Swal.fire({
+                icon: "error",
+                title: "Koneksi Bermasalah",
+                text: "Server tidak dapat dihubungi. Periksa koneksi dan coba lagi."
+            });
+
             return false;
         }
+    }
+
+    // ==========================================
+    // PILIH SIDEBAR BERDASARKAN ROLE
+    // ==========================================
+    function getSidebarURL() {
+        const role = window.currentUser?.role;
+
+        if (!role) {
+            console.error("[LAYOUT] Role pengguna tidak tersedia.");
+            return null;
+        }
+
+        return SIDEBAR_URLS[role] || null;
     }
 
     // ==========================================
@@ -217,12 +251,27 @@
         );
 
         if (!sidebar) {
-            console.warn("[LAYOUT] Sidebar container tidak ditemukan.");
+            console.warn(
+                "[LAYOUT] Sidebar container tidak ditemukan."
+            );
             return;
         }
 
+        const sidebarURL = getSidebarURL();
+
+        if (!sidebarURL) {
+            sidebar.innerHTML = `
+                <div class="alert alert-danger m-3">
+                    Role tidak valid. Sidebar tidak dapat dimuat.
+                </div>
+            `;
+            return;
+        }
+
+        console.log("[LAYOUT] Memuat sidebar:", sidebarURL);
+
         try {
-            const response = await fetch(SIDEBAR_URL, {
+            const response = await fetch(sidebarURL, {
                 cache: "no-cache"
             });
 
@@ -232,17 +281,26 @@
 
             sidebar.innerHTML = await response.text();
 
+            // Atur menu aktif
             setActiveMenu(sidebar);
+
+            // Aktifkan tombol logout
             setupLogout(sidebar);
 
-            console.log("[LAYOUT] Sidebar berhasil dimuat.");
+            console.log(
+                `[LAYOUT] Sidebar role ${window.currentUser.role} berhasil dimuat.`
+            );
 
         } catch (error) {
-            console.error("[LAYOUT] Gagal memuat sidebar:", error);
+            console.error(
+                "[LAYOUT] Gagal memuat sidebar:",
+                error
+            );
 
             sidebar.innerHTML = `
                 <div class="alert alert-danger m-3">
-                    Sidebar gagal dimuat. Periksa path file.
+                    Sidebar gagal dimuat.
+                    Periksa path file dan server frontend.
                 </div>
             `;
         }
@@ -256,19 +314,26 @@
             .replace(/\/+$/, "")
             .toLowerCase();
 
-        sidebar.querySelectorAll("a[href]").forEach((link) => {
+        sidebar.querySelectorAll("a[href]").forEach(link => {
             const href = link.getAttribute("href");
 
             if (
                 !href ||
                 href.startsWith("#") ||
                 href.startsWith("javascript:")
-            ) return;
+            ) {
+                return;
+            }
 
             try {
-                const url = new URL(href, window.location.href);
+                const url = new URL(
+                    href,
+                    window.location.href
+                );
 
-                if (url.origin !== window.location.origin) return;
+                if (url.origin !== window.location.origin) {
+                    return;
+                }
 
                 const linkPath = url.pathname
                     .replace(/\/+$/, "")
@@ -281,8 +346,12 @@
                     link.classList.remove("active");
                     link.removeAttribute("aria-current");
                 }
+
             } catch (error) {
-                console.warn("[LAYOUT] Link tidak valid:", href);
+                console.warn(
+                    "[LAYOUT] Link tidak valid:",
+                    href
+                );
             }
         });
     }
@@ -294,11 +363,13 @@
         const button = sidebar.querySelector("#logoutButton");
 
         if (!button) {
-            console.warn("[LAYOUT] Tombol logout tidak ditemukan.");
+            console.warn(
+                "[LAYOUT] Tombol logout tidak ditemukan."
+            );
             return;
         }
 
-        button.addEventListener("click", async (event) => {
+        button.addEventListener("click", async event => {
             event.preventDefault();
 
             if (button.dataset.loading === "true") return;
@@ -324,11 +395,14 @@
                         response.status
                     );
                 }
+
             } catch (error) {
-                console.error("[LAYOUT] Request logout gagal:", error);
+                console.error(
+                    "[LAYOUT] Request logout gagal:",
+                    error
+                );
+
             } finally {
-                // Jangan menampilkan pesan sesi kedaluwarsa
-                // untuk proses logout yang disengaja.
                 window.isRedirecting = true;
                 window.location.replace(LOGIN_URL);
             }
@@ -336,17 +410,28 @@
     }
 
     // ==========================================
-    // INISIALISASI
+    // INISIALISASI LAYOUT
     // ==========================================
-    document.addEventListener("DOMContentLoaded", async () => {
-        console.log("[LAYOUT] Inisialisasi dimulai.");
+    document.addEventListener(
+        "DOMContentLoaded",
+        async () => {
+            console.log("[LAYOUT] Inisialisasi dimulai.");
 
-        if (isPublicPage()) return;
+            // Halaman login dan register tidak membutuhkan sidebar
+            if (isPublicPage()) return;
 
-        const authenticated = await checkAuth();
+            // Verifikasi login dan role terlebih dahulu
+            const authenticated = await checkAuth();
 
-        if (!authenticated || window.isRedirecting) return;
+            if (
+                !authenticated ||
+                window.isRedirecting
+            ) {
+                return;
+            }
 
-        await loadSidebar();
-    });
+            // Sidebar dipilih setelah role terverifikasi
+            await loadSidebar();
+        }
+    );
 })();

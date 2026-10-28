@@ -140,3 +140,21 @@ func (r *Repository) Delete(
 
 	return nil
 }
+
+// AdjustQty menambah atau mengurangi kuantitas aset secara atomik.
+func (r *Repository) AdjustQty(
+	ctx context.Context,
+	tx *gorm.DB,
+	assetID uint,
+	delta int,
+) error {
+	db := r.db
+	if tx != nil {
+		db = tx
+	}
+
+	return db.WithContext(ctx).
+		Model(&Asset{}).
+		Where("asset_id = ? AND status = ?", assetID, true).
+		Update("qty_in", gorm.Expr("qty_in + ?", delta)).Error
+}

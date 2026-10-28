@@ -1,7 +1,9 @@
 package complaint
 
 import (
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -51,8 +53,11 @@ func (h *Handler) Create(c *gin.Context) {
 func (h *Handler) FindAll(c *gin.Context) {
 	result, err := h.service.FindAll()
 	if err != nil {
+		log.Printf("ERROR FindAll complaints: %v", err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Gagal mengambil data keluhan",
+			"error":  "Gagal mengambil data keluhan",
+			"detail": err.Error(),
 		})
 		return
 	}
@@ -145,5 +150,38 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Keluhan berhasil dihapus",
+	})
+}
+
+func (h *Handler) FindByUserID(c *gin.Context) {
+	// Ambil User ID dari query parameter.
+	userIDParam := c.Query("userID")
+
+	if userIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Parameter userID wajib diisi",
+		})
+		return
+	}
+
+	parsedID, err := strconv.ParseUint(userIDParam, 10, 64)
+	if err != nil || parsedID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User ID harus berupa angka positif",
+		})
+		return
+	}
+
+	result, err := h.service.FindByUserID(uint(parsedID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Gagal mengambil data keluhan berdasarkan User ID",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Data keluhan berhasil diambil",
+		"data":    result,
 	})
 }

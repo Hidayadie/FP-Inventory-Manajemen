@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"gin-auth/internal/asset"
+	"gin-auth/internal/assetbroken"
+	"gin-auth/internal/assetlending"
 	"gin-auth/internal/auth"
 	"gin-auth/internal/category"
 	"gin-auth/internal/complaint"
@@ -98,7 +100,17 @@ func setupEngine(db *gorm.DB, secret []byte) *gin.Engine {
 	complaintService := complaint.NewService(complaintRepo)
 	complaintHandler := complaint.NewHandler(complaintService)
 
-	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler, dashboardHandler, complaintHandler)
+	// asset-broken
+	assetBrokenRepo := assetbroken.NewRepository(db)
+	assetBrokenService := assetbroken.NewService(assetBrokenRepo, assetRepo)
+	assetBrokenHandler := assetbroken.NewHandler(assetBrokenService)
+
+	// asset-lending
+	assetLendingRepo := assetlending.NewRepository(db)
+	assetLendingService := assetlending.NewService(assetLendingRepo, assetRepo, repo)
+	assetLendingHandler := assetlending.NewHandler(assetLendingService)
+
+	private.RegisterRoutes(r, handler.AuthReq(), categoryHandler, locationHandler, assetHandler, dashboardHandler, complaintHandler, assetBrokenHandler, assetLendingHandler)
 
 	return r
 }
@@ -125,16 +137,32 @@ func run() error {
 	}
 	defer conn.Close()
 
-	if err := db.AutoMigrate(
-		&auth.User{},
-		&location.Location{},
-		&category.Category{},
-		&asset.Asset{},
-		&complaint.Complaint{},
-	); err != nil {
-		return fmt.Errorf("migrasi tabel gagal: %w", err)
+	// Migrasi tabel secara bertahap untuk mengetahui sumber error.
+	migrations := []struct {
+		name  string
+		model interface{}
+	}{
+		{"users", &auth.User{}},
+		{"locations", &location.Location{}},
+		{"categories", &category.Category{}},
+		{"assets", &asset.Asset{}},
+		{"asset_rusak", &assetbroken.AssetRusak{}},
+		{"asset_lending", &assetlending.LendingAsset{}},
 	}
 
+	for _, migration := range migrations {
+		log.Printf("Memulai migrasi model: %s", migration.name)
+
+		if err := db.AutoMigrate(migration.model); err != nil {
+			return fmt.Errorf(
+				"migrasi model %s gagal: %w",
+				migration.name,
+				err,
+			)
+		}
+
+		log.Printf("Migrasi model %s berhasil", migration.name)
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

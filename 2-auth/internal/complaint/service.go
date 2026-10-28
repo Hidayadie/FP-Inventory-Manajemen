@@ -2,7 +2,7 @@ package complaint
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -59,14 +59,16 @@ func (s *Service) Create(req CreateComplaintRequest) (*Complaint, error) {
 	now := time.Now()
 	year := now.Year()
 
-	count, err := s.repository.CountByYear(year)
+	code, err := s.repository.GenerateUniqueCode(year)
 	if err != nil {
+		log.Printf("[COMPLAINT] GenerateUniqueCode gagal: %v", err)
 		return nil, err
 	}
+	log.Printf("[COMPLAINT] Kode complaint yang dibuat: %s", code)
 
 	c := &Complaint{
 		ID:          uuid.New(),
-		Code:        fmt.Sprintf("CMP-%d-%03d", year, count+1),
+		Code:        code,
 		UserID:      req.UserID,
 		AssetID:     req.AssetID,
 		Title:       req.Title,
@@ -87,6 +89,14 @@ func (s *Service) Create(req CreateComplaintRequest) (*Complaint, error) {
 
 func (s *Service) FindAll() ([]Complaint, error) {
 	return s.repository.FindAll()
+}
+
+func (s *Service) FindByUserID(userID uint) ([]Complaint, error) {
+	if userID == 0 {
+		return nil, errors.New("User ID tidak valid")
+	}
+
+	return s.repository.FindByUserID(userID)
 }
 
 func (s *Service) FindByID(id string) (*Complaint, error) {
