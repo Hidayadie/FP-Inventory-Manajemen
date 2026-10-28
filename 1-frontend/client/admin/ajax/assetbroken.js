@@ -5,9 +5,13 @@ $(document).ready(function () {
     // =========================================================
     // 1. KONFIGURASI ENDPOINT
     // =========================================================
-    const API = "http://localhost:8080/api/private/asset-broken";
-    const ASSETS_API = "http://localhost:8080/api/private/assets";
-    const LOCATION_API = "http://localhost:8080/api/private/location";
+    const API_BASE = window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+    const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+    
+    
+    const API = `${API_BASE}/api/private/asset-broken`;
+    const ASSETS_API = `${API_BASE}/api/private/assets`;
+    const LOCATION_API = `${API_BASE}/api/private/location`;
 
     const $tableBody = $("#assetBrokenTableBody");
     const $form = $("#assetBrokenForm");
@@ -712,7 +716,7 @@ $(document).ready(function () {
         `);
 
         detailModal.show();
-
+        
         try {
             const response = await apiRequest(`${API}/${encodeURIComponent(id)}`);
             const item = response?.data ?? response?.Data ?? response;

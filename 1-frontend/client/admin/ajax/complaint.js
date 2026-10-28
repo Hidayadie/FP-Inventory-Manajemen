@@ -14,13 +14,18 @@
  */
 
 "use strict";
+const URL_BASE = window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
 
-const API_BASE = "http://localhost:8080/api/private";
+const API_BASE=`${URL_BASE}/api/private`;
+//const API_BASE = "http://localhost:8080/api/private";
+
 const COMPLAINT_URL = `${API_BASE}/complaints`;
 const ASSET_URL = `${API_BASE}/assets`;
 const LOCATION_URL = `${API_BASE}/location`;
-const ME_URL = "http://localhost:8080/api/me";
-const IMAGE_BASE_URL = "http://localhost:8080";
+//const ME_URL = "http://localhost:8080/api/me";
+const ME_URL = `${FRONTEND_BASE_URL}/api/me`;;
+const IMAGE_BASE_URL = URL_BASE;
 
 let complaintPageInitialized = false;
 

@@ -2,8 +2,12 @@
  * AJAX & Modal CRUD Kategori - Sistem Inventaris Cerdas
  */
 
-const API_BASE = "http://localhost:8080/api/private";
-const CATEGORY_URL = `${API_BASE}/categories`;
+//const API_BASE = "http://localhost:8080/api/private";
+
+const API_BASE = window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+
+const CATEGORY_URL = `${API_BASE}/api/private/categories`;
 
 $(document).ready(function () {
     // DOM References

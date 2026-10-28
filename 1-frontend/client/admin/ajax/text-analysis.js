@@ -1,7 +1,9 @@
 "use strict";
 
-const TEXT_ANALYSIS_API =
-    "http://localhost:8080/api/private/text-analysis";
+    const API_BASE= window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+    //const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+
+const TEXT_ANALYSIS_API =`${API_BASE}/api/private/text-analysis`;
 
 // Instance grafik disimpan agar bisa diperbarui.
 let reportsByClusterChartInstance = null;

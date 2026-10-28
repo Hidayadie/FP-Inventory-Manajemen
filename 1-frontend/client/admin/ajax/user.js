@@ -1,7 +1,11 @@
 $(function () {
     "use strict";
-
-    const API_BASE = "http://localhost:8080/api/private/users";
+    const API_URL= window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+    //const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+    
+    //const API_BASE = "http://localhost:8080/api/private/users";
+    
+    const API_BASE = `${API_URL}/api/private/users`;
     const $table = $("#userTableBody");
     const $alert = $("#userAlert");
     const $createForm = $("#userCreateForm");

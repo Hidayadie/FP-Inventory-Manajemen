@@ -2,11 +2,14 @@
  * AJAX & Modal CRUD Aset - Sistem Inventaris Cerdas
  */
 
-const API_BASE = "http://localhost:8080/api/private";
+//const API_BASE = "http://localhost:8080/api/private";
 
-const ASSET_URL = `${API_BASE}/assets`;
-const CATEGORY_URL = `${API_BASE}/categories`;
-const LOCATION_URL = `${API_BASE}/location`;
+const API_BASE = window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+
+const ASSET_URL = `${API_BASE}/api/private/assets`;
+const CATEGORY_URL = `${API_BASE}/api/private/categories`;
+const LOCATION_URL = `${API_BASE}/api/private/location`;
 
 $(document).ready(function () {
     // DOM References

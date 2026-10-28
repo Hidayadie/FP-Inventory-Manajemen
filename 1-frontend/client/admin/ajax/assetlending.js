@@ -5,10 +5,12 @@ $(function () {
     // ==========================================
     // KONFIGURASI ENDPOINT API
     // ==========================================
-    const API_BASE = "http://localhost:8080/api";
-    const LENDING_URL = `${API_BASE}/private/asset-lending`;
-    const USERS_URL = `${API_BASE}/private/users `;
-    const ASSETS_URL = `${API_BASE}/private/assets`;
+    const API_BASE = window.APP_CONFIG.API_BASE_URL; //"http://localhost:8080",
+    const FRONTEND_BASE_URL= window.APP_CONFIG.BASIC_URL; //"http://localhost:8088",
+    
+    const LENDING_URL = `${API_BASE}/api/private/asset-lending`;
+    const USERS_URL = `${API_BASE}/api/private/users `;
+    const ASSETS_URL = `${API_BASE}/api/private/assets`;
 
     const $table = $("#lendingTableBody");
     const $alert = $("#lendingAlert");
