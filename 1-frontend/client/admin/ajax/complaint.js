@@ -755,148 +755,184 @@ function initComplaintsPage() {
     // RENDER TABEL COMPLAINT
     // ==========================================
 
-    function renderTable() {
-        const keyword = String($search.val() || "").trim().toLowerCase();
-        const selectedStatus = String($statusFilter.val() || "").toLowerCase();
-        const onlyUnfixed = $unfixedFilter.is(":checked");
+   function renderTable() {
+    const keyword = String($search.val() || "").trim().toLowerCase();
+    const selectedStatus = String($statusFilter.val() || "").toLowerCase();
+    const onlyUnfixed = $unfixedFilter.is(":checked");
 
-        const filtered = complaints.filter(function (item) {
-            const haystack = [
-                item.code,
-                item.title,
-                item.description,
-                item.note,
-                item.userID,
-                item.user_id,
-                item.user?.name,
-                item.user?.nama,
-                getComplaintAssetName(item),
-                getComplaintLocationName(item)
-            ]
-                .map(value => String(value ?? ""))
-                .join(" ")
-                .toLowerCase();
-
-            const matchesKeyword = !keyword || haystack.includes(keyword);
-            const matchesStatus = !selectedStatus ||
-                normalizedStatus(item) === selectedStatus;
-
-            const isFixed =
-                item.is_fixed === true ||
-                item.is_fixed === "true";
-
-            const matchesFixed = !onlyUnfixed || !isFixed;
-
-            return matchesKeyword && matchesStatus && matchesFixed;
-        });
-
-        $tableBody.empty();
-
-        if (filtered.length === 0) {
-            $tableBody.html(`
-                <tr>
-                    <td colspan="11" class="text-center text-muted py-4">
-                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                        Tidak ada data keluhan ditemukan.
-                    </td>
-                </tr>
-            `);
-
-            $count.text(`Menampilkan 0 dari ${complaints.length} keluhan`);
-            return;
-        }
-
-        filtered.forEach(function (item, index) {
-            const id = item.id;
-            const code = item.code || "-";
-            const title = item.title || "-";
-
-            const namaUser =
-                item.user?.name ??
-                item.user?.nama ??
-                item.userID ??
-                item.user_id ??
-                "-";
-
-            const namaAset = getComplaintAssetName(item);
-            const lokasiAset = getComplaintLocationName(item);
-            const status = normalizedStatus(item);
-
-            const $row = $("<tr>");
-
-            $("<td>")
-                .addClass("text-center")
-                .text(index + 1)
-                .appendTo($row);
-
-            $("<td>")
-                .html(`<span class="complaint-code font-monospace">${escapeHtml(code)}</span>`)
-                .appendTo($row);
-
-            $("<td>")
-                .html(`
-                    <div class="fw-semibold text-dark">${escapeHtml(title)}</div>
-                    <div class="small text-muted text-truncate" style="max-width:220px">
-                        ${escapeHtml(item.description || "")}
-                    </div>
-                `)
-                .appendTo($row);
-
-            $("<td>").text(namaUser).appendTo($row);
-            $("<td>").text(namaAset).appendTo($row);
-            $("<td>").text(lokasiAset).appendTo($row);
-            $("<td>").html(renderPriority(item.priority)).appendTo($row);
-            $("<td>").html(renderStatusBadge(status)).appendTo($row);
-            $("<td>").html(renderFixedBadge(item.is_fixed)).appendTo($row);
-
-            $("<td>")
-                .addClass("small text-muted")
-                .text(formatDate(item.created_at))
-                .appendTo($row);
-
-            const $actionTd = $("<td>").addClass("text-center");
-            const $actionGroup = $("<div>")
-                .addClass("btn-group btn-group-sm")
-                .attr("role", "group");
-
-            $("<button>", {
-                type: "button",
-                class: "btn btn-outline-info btn-detail-complaint",
-                title: "Detail Keluhan"
-            })
-                .attr("data-id", id)
-                .html('<i class="bi bi-eye"></i>')
-                .appendTo($actionGroup);
-
-            $("<button>", {
-                type: "button",
-                class: "btn btn-outline-warning btn-edit-complaint",
-                title: "Ubah Keluhan"
-            })
-                .attr("data-id", id)
-                .html('<i class="bi bi-pencil-square"></i>')
-                .appendTo($actionGroup);
-
-            $("<button>", {
-                type: "button",
-                class: "btn btn-outline-danger btn-delete-complaint",
-                title: "Hapus Keluhan"
-            })
-                .attr("data-id", id)
-                .attr("data-name", title)
-                .attr("data-code", code)
-                .html('<i class="bi bi-trash"></i>')
-                .appendTo($actionGroup);
-
-            $actionTd.append($actionGroup);
-            $row.append($actionTd);
-            $tableBody.append($row);
-        });
-
-        $count.text(
-            `Menampilkan ${filtered.length} dari ${complaints.length} keluhan`
-        );
+    // Hancurkan instance DataTables lama sebelum merender ulang.
+    if ($.fn.DataTable.isDataTable("#complaintTable")) {
+        $("#complaintTable").DataTable().destroy();
     }
+
+    $tableBody.empty();
+
+    const filtered = complaints.filter(function (item) {
+        const haystack = [
+            item.code,
+            item.title,
+            item.description,
+            item.note,
+            item.userID,
+            item.user_id,
+            item.user?.name,
+            item.user?.nama,
+            getComplaintAssetName(item),
+            getComplaintLocationName(item)
+        ]
+            .map(value => String(value ?? ""))
+            .join(" ")
+            .toLowerCase();
+
+        const matchesKeyword =
+            !keyword || haystack.includes(keyword);
+
+        const matchesStatus =
+            !selectedStatus ||
+            normalizedStatus(item) === selectedStatus;
+
+        const isFixed =
+            item.is_fixed === true ||
+            item.is_fixed === "true";
+
+        const matchesFixed = !onlyUnfixed || !isFixed;
+
+        return matchesKeyword && matchesStatus && matchesFixed;
+    });
+
+    // Render baris tabel.
+    filtered.forEach(function (item, index) {
+        const id = item.id;
+        const code = item.code || "-";
+        const title = item.title || "-";
+
+        const namaUser =
+            item.user?.name ??
+            item.user?.nama ??
+            item.userID ??
+            item.user_id ??
+            "-";
+
+        const namaAset = getComplaintAssetName(item);
+        const lokasiAset = getComplaintLocationName(item);
+        const status = normalizedStatus(item);
+
+        const $row = $("<tr>");
+
+        $("<td>")
+            .addClass("text-center")
+            .text(index + 1)
+            .appendTo($row);
+
+        $("<td>")
+            .html(
+                `<span class="complaint-code font-monospace">${escapeHtml(code)}</span>`
+            )
+            .appendTo($row);
+
+        $("<td>")
+            .html(`
+                <div class="fw-semibold text-dark">${escapeHtml(title)}</div>
+                <div class="small text-muted text-truncate" style="max-width:220px">
+                    ${escapeHtml(item.description || "")}
+                </div>
+            `)
+            .appendTo($row);
+
+        $("<td>").text(namaUser).appendTo($row);
+        $("<td>").text(namaAset).appendTo($row);
+        $("<td>").text(lokasiAset).appendTo($row);
+        $("<td>").html(renderPriority(item.priority)).appendTo($row);
+        $("<td>").html(renderStatusBadge(status)).appendTo($row);
+        $("<td>").html(renderFixedBadge(item.is_fixed)).appendTo($row);
+
+        $("<td>")
+            .addClass("small text-muted")
+            .text(formatDate(item.created_at))
+            .appendTo($row);
+
+        // Tombol aksi.
+        const $actionTd = $("<td>").addClass("text-center");
+
+        const $actionGroup = $("<div>")
+            .addClass("btn-group btn-group-sm")
+            .attr("role", "group");
+
+        $("<button>", {
+            type: "button",
+            class: "btn btn-outline-info btn-detail-complaint",
+            title: "Detail Keluhan"
+        })
+            .attr("data-id", id)
+            .html('<i class="bi bi-eye"></i>')
+            .appendTo($actionGroup);
+
+        $("<button>", {
+            type: "button",
+            class: "btn btn-outline-warning btn-edit-complaint",
+            title: "Ubah Keluhan"
+        })
+            .attr("data-id", id)
+            .html('<i class="bi bi-pencil-square"></i>')
+            .appendTo($actionGroup);
+
+        $("<button>", {
+            type: "button",
+            class: "btn btn-outline-danger btn-delete-complaint",
+            title: "Hapus Keluhan"
+        })
+            .attr("data-id", id)
+            .attr("data-name", title)
+            .attr("data-code", code)
+            .html('<i class="bi bi-trash"></i>')
+            .appendTo($actionGroup);
+
+        $actionTd.append($actionGroup);
+        $row.append($actionTd);
+        $tableBody.append($row);
+    });
+
+    $count.text(
+        `Menampilkan ${filtered.length} dari ${complaints.length} keluhan`
+    );
+
+    // Inisialisasi instance DataTables setelah semua baris dibuat.
+    $("#complaintTable").DataTable({
+        paging: true,
+        pageLength: 10,
+        lengthMenu: [
+            [10, 25, 50, 100],
+            [10, 25, 50, 100]
+        ],
+        searching: false,
+        ordering: true,
+        info: true,
+        autoWidth: false,
+        order: [],
+        columnDefs: [
+            {
+                targets: [0, 9, 10],
+                orderable: false
+            }
+        ],
+        language: {
+            emptyTable: "Tidak ada data keluhan",
+            zeroRecords: "Data keluhan tidak ditemukan",
+            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ keluhan",
+            infoEmpty: "Tidak ada data keluhan",
+            infoFiltered: "(difilter dari _MAX_ total data)",
+            lengthMenu: "Tampilkan _MENU_ data",
+            loadingRecords: "Memuat data...",
+            processing: "Memproses...",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Berikutnya",
+                previous: "Sebelumnya"
+            }
+        }
+    });
+}
 
     // ==========================================
     // MEMUAT DATA COMPLAINT

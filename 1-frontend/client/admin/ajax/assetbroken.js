@@ -407,88 +407,134 @@ $(document).ready(function () {
     // =========================================================
     // 6. RENDER TABEL DAN FILTER
     // =========================================================
-    function renderAssetBroken() {
-        const keyword = String($search.val() || "")
-            .toLowerCase()
-            .trim();
+  function renderAssetBroken() {
+    const keyword = String($search.val() || "")
+        .toLowerCase()
+        .trim();
 
-        const statusSelected = $statusFilter.val();
+    const statusSelected = $statusFilter.val();
 
-        const filtered = assetBrokenData.filter(function (item) {
-            const asset = getAssetDetail(item);
+    // Filter data berdasarkan keyword dan status
+    const filtered = assetBrokenData.filter(function (item) {
+        const asset = getAssetDetail(item);
 
-            const text = [
-                item.code_rusak,
-                item.CodeRusak,
-                getBrokenLocationName(item),
-                getAssetCode(asset),
-                getAssetName(asset),
-                item.description,
-                item.status
-            ].join(" ").toLowerCase();
+        const text = [
+            item.code_rusak,
+            item.CodeRusak,
+            getBrokenLocationName(item),
+            getAssetCode(asset),
+            getAssetName(asset),
+            item.description,
+            item.status
+        ].join(" ").toLowerCase();
 
-            const matchKeyword = text.includes(keyword);
-            const matchStatus = !statusSelected ||
-                item.status === statusSelected;
+        const matchKeyword = text.includes(keyword);
+        const matchStatus = !statusSelected ||
+            item.status === statusSelected;
 
-            return matchKeyword && matchStatus;
-        });
+        return matchKeyword && matchStatus;
+    });
 
-        $("#assetBrokenCount").text(
-            `Menampilkan ${filtered.length} dari ${assetBrokenData.length} data`
-        );
-
-        if (filtered.length === 0) {
-            $tableBody.html(`
-                <tr>
-                    <td colspan="9" class="text-center text-secondary">
-                        Tidak ada data yang ditemukan.
-                    </td>
-                </tr>
-            `);
-            return;
-        }
-
-        $tableBody.html(filtered.map(function (item, index) {
-            const asset = getAssetDetail(item);
-            const id = getBrokenID(item);
-            const code = item.code_rusak ?? item.CodeRusak ?? "-";
-
-            return `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${escapeHTML(code)}</td>
-                    <td>${escapeHTML(getBrokenLocationName(item))}</td>
-                    <td>${escapeHTML(getAssetCode(asset) || "-")}</td>
-                    <td>${escapeHTML(getAssetName(asset) || "-")}</td>
-                    <td class="text-center">${escapeHTML(item.qty_rusak ?? "-")}</td>
-                    <td>${statusBadge(item.status)}</td>
-                    <td>${escapeHTML(item.description || "-")}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-info btn-detail"
-                                data-id="${escapeHTML(id)}"
-                                title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-primary btn-edit"
-                                data-id="${escapeHTML(id)}"
-                                title="Ubah">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-outline-danger btn-delete"
-                                data-id="${escapeHTML(id)}"
-                                data-code="${escapeHTML(code)}"
-                                title="Hapus">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join(""));
+    // Hancurkan DataTables lama jika sudah ada
+    if ($.fn.DataTable.isDataTable("#assetBrokenTable")) {
+        $("#assetBrokenTable").DataTable().destroy();
     }
 
+    // Kosongkan tabel sebelum render ulang
+    $tableBody.empty();
+
+    // Render baris data
+    filtered.forEach(function (item, index) {
+        const asset = getAssetDetail(item);
+        const id = getBrokenID(item);
+        const code = item.code_rusak ?? item.CodeRusak ?? "-";
+
+        const row = `
+            <tr>
+                <td class="text-center">${index + 1}</td>
+                <td>${escapeHTML(code)}</td>
+                <td>${escapeHTML(getBrokenLocationName(item))}</td>
+                <td>${escapeHTML(getAssetCode(asset) || "-")}</td>
+                <td>${escapeHTML(getAssetName(asset) || "-")}</td>
+                <td class="text-center">${escapeHTML(item.qty_rusak ?? "-")}</td>
+                <td>${statusBadge(item.status)}</td>
+                <td>${escapeHTML(item.description || "-")}</td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button
+                            type="button"
+                            class="btn btn-outline-info btn-detail"
+                            data-id="${escapeHTML(id)}"
+                            title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary btn-edit"
+                            data-id="${escapeHTML(id)}"
+                            title="Ubah">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger btn-delete"
+                            data-id="${escapeHTML(id)}"
+                            data-code="${escapeHTML(code)}"
+                            title="Hapus">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        $tableBody.append(row);
+    });
+
+    // Perbarui jumlah data
+    $("#assetBrokenCount").text(
+        `Menampilkan ${filtered.length} dari ${assetBrokenData.length} data`
+    );
+
+    // Inisialisasi DataTables
+    $("#assetBrokenTable").DataTable({
+        pageLength: 10,
+        lengthMenu: [
+            [10, 25, 50, 100],
+            [10, 25, 50, 100]
+        ],
+        searching: true,
+        ordering: true,
+        paging: true,
+        info: true,
+        autoWidth: false,
+        order: [],
+        columnDefs: [
+            {
+                targets: [0, 8],
+                orderable: false
+            }
+        ],
+        language: {
+            emptyTable: "Tidak ada data yang ditemukan.",
+            zeroRecords: "Tidak ada data yang cocok.",
+            search: "Cari:",
+            searchPlaceholder: "Cari data aset rusak...",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+            infoEmpty: "Tidak ada data",
+            infoFiltered: "(difilter dari _MAX_ total data)",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Berikutnya",
+                previous: "Sebelumnya"
+            }
+        }
+    });
+}
     // =========================================================
     // 7. RESET FORM DAN KODE KERUSAKAN
     // =========================================================
@@ -691,7 +737,7 @@ $(document).ready(function () {
             await loadAssetBroken();
         } catch (xhr) {
             console.error("Gagal menyimpan data:", xhr);
-
+            
             showFormAlert(
                 errorMessage(xhr, "Gagal menyimpan data aset rusak.")
             );

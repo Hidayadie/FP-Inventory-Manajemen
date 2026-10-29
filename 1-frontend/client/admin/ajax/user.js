@@ -103,30 +103,84 @@ $(function () {
 
         $("#userCount").text(`Menampilkan ${filtered.length} dari ${users.length} pengguna`);
     }
-
+    
     function loadUsers() {
-        $table.html(`<tr><td colspan="6" class="text-center py-4">
-            <span class="spinner-border spinner-border-sm me-2"></span>Memuat data pengguna...
-        </td></tr>`);
-
-        return apiAjax({ url: API_BASE, method: "GET" })
-            .done(response => {
-                console.log("Respons GET users:", response);
-                users = unwrapUsers(response);
-                renderUsers();
-                hideAlert($alert);
-            })
-            .fail(xhr => {
-                console.error("Gagal memuat users:", xhr.status, xhr.responseText);
-                users = [];
-                $table.html(`<tr><td colspan="6" class="text-center text-danger py-4">
-                    ${escapeHtml(getError(xhr, "Gagal memuat data pengguna."))}
-                </td></tr>`);
-                $("#userCount").text("Total data: 0");
-                showAlert($alert, getError(xhr, "Gagal memuat data pengguna."));
-            });
+    // Hancurkan DataTables lama sebelum memuat ulang data
+    if ($.fn.DataTable.isDataTable("#userTable")) {
+        $("#userTable").DataTable().destroy();
     }
 
+    $table.html(`
+        <tr>
+            <td colspan="6" class="text-center py-4">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Memuat data pengguna...
+            </td>
+        </tr>
+    `);
+
+    return apiAjax({
+        url: API_BASE,
+        method: "GET"
+    })
+    .done(function (response) {
+        console.log("Respons GET users:", response);
+
+        users = unwrapUsers(response);
+
+        // Render tabel dan inisialisasi DataTables di renderUsers()
+        renderUsers();
+
+        hideAlert($alert);
+    })
+    .fail(function (xhr) {
+        console.error(
+            "Gagal memuat users:",
+            xhr.status,
+            xhr.responseText
+        );
+
+        users = [];
+
+        $table.empty();
+
+        $("#userCount").text("Total data: 0");
+
+        showAlert(
+            $alert,
+            getError(xhr, "Gagal memuat data pengguna.")
+        );
+
+        // Inisialisasi DataTables agar pesan tabel kosong tetap tampil
+        if ($.fn.DataTable.isDataTable("#userTable")) {
+            $("#userTable").DataTable().destroy();
+        }
+
+        $("#userTable").DataTable({
+            pageLength: 10,
+            searching: true,
+            ordering: true,
+            paging: true,
+            info: true,
+            autoWidth: false,
+            language: {
+                emptyTable: "Gagal memuat data pengguna.",
+                zeroRecords: "Data pengguna tidak ditemukan.",
+                search: "Cari:",
+                searchPlaceholder: "Cari pengguna...",
+                lengthMenu: "Tampilkan _MENU_ data",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ pengguna",
+                infoEmpty: "Tidak ada data pengguna",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Berikutnya",
+                    previous: "Sebelumnya"
+                }
+            }
+        });
+    });
+}
     function resetCreateForm() {
         $createForm[0].reset();
         $("#newUserRole").val("user");

@@ -54,95 +54,163 @@
         }
     };
 
-    // ==========================================
-    // PEMERIKSAAN AUTENTIKASI
-    // ==========================================
-    window.authReady = (async () => {
-        const pathname = window.location.pathname
-            .replace(/\/+$/, "")
-            .toLowerCase();
+// ==========================================
+// PEMERIKSAAN AUTENTIKASI
+// ==========================================
+window.authReady = (async () => {
+    const pathname = window.location.pathname
+        .replace(/\/+$/, "")
+        .toLowerCase();
 
-        // Tidak memeriksa sesi pada halaman login/register
-        if (
-            pathname.endsWith("/login.html") ||
-            pathname.endsWith("/register.html")
-        ) {
-            return true;
-        }
+    // Tidak memeriksa sesi pada halaman login/register
+    if (
+        pathname.endsWith("/login.html") ||
+        pathname.endsWith("/register.html")
+    ) {
+        return true;
+    }
 
+    // Mengambil message dari respons backend
+    async function getResponseMessage(response) {
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/me`,
-                {
-                    method: "GET",
-                    credentials: "include",
-                    headers: {
-                        Accept: "application/json"
-                    },
-                    cache: "no-store"
-                }
+            const result = await response.clone().json();
+            return result.message || result.error || null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Menampilkan pesan SweetAlert2
+    async function showAuthMessage(message, icon = "warning") {
+        if (typeof Swal !== "undefined") {
+            await Swal.fire({
+                icon: icon,
+                title: icon === "error"
+                    ? "Terjadi Kesalahan"
+                    : "Informasi",
+                text: message,
+                confirmButtonText: "OK",
+                allowOutsideClick: false
+            });
+        } else {
+            alert(message);
+        }
+    }
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/api/me`,
+            {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    Accept: "application/json"
+                },
+                cache: "no-store"
+            }
+        );
+
+        // Ambil message dari backend jika tersedia
+        const message = await getResponseMessage(response);
+
+        // ==========================================
+        // SESI TIDAK VALID / KEDALUWARSA
+        // ==========================================
+        if (response.status === 401) {
+            await showAuthMessage(
+                message || "Sesi Anda telah berakhir. Silakan login kembali.",
+                "warning"
             );
 
-            // Sesi tidak valid atau kedaluwarsa
-            if (response.status === 401) {
-                window.redirectToLogin();
-                return false;
-            }
-
-            // Tidak memiliki izin
-            if (response.status === 403) {
-                window.redirectToLogin(
-                    "Akses ditolak atau sesi tidak memiliki izin."
-                );
-                return false;
-            }
-
-            // Error server bukan otomatis token kedaluwarsa
-            if (!response.ok) {
-                console.error(
-                    "[AUTH] Gagal memeriksa sesi:",
-                    response.status,
-                    response.statusText
-                );
-
-                return false;
-            }
-
-            const result = await response.json();
-            const user = result.data || result.user;
-
-            if (!user || !user.role) {
-                console.error(
-                    "[AUTH] Data pengguna atau role tidak ditemukan."
-                );
-
-                window.redirectToLogin(
-                    "Data sesi tidak valid. Silakan login kembali."
-                );
-
-                return false;
-            }
-
-            // Simpan informasi pengguna
-            window.currentUser = user;
-
-            console.log(
-                "[AUTH] Autentikasi berhasil:",
-                user.role
-            );
-
-            return true;
-
-        } catch (error) {
-            console.error(
-                "[AUTH] Tidak dapat memeriksa sesi:",
-                error
-            );
-
-            // Gangguan jaringan tidak langsung dianggap
-            // sebagai token kedaluwarsa.
+            window.redirectToLogin();
             return false;
         }
-    })();
+
+        // ==========================================
+        // AKSES DITOLAK
+        // ==========================================
+        if (response.status === 403) {
+            await showAuthMessage(
+                message || "Akses ditolak. Anda tidak memiliki izin.",
+                "error"
+            );
+
+            window.redirectToLogin();
+            return false;
+        }
+
+        // ==========================================
+        // ERROR SERVER
+        // ==========================================
+        if (!response.ok) {
+            console.error(
+                "[AUTH] Gagal memeriksa sesi:",
+                response.status,
+                response.statusText
+            );
+
+            await showAuthMessage(
+                message || "Gagal memeriksa sesi. Silakan coba kembali.",
+                "error"
+            );
+
+            return false;
+        }
+
+        // ==========================================
+        // MEMBACA DATA PENGGUNA
+        // ==========================================
+        const result = await response.json();
+        const user = result.data || result.user;
+
+        if (!user || !user.role) {
+            console.error(
+                "[AUTH] Data pengguna atau role tidak ditemukan."
+            );
+
+            await showAuthMessage(
+                result.message ||
+                "Data sesi tidak valid. Silakan login kembali.",
+                "warning"
+            );
+
+            window.redirectToLogin();
+            return false;
+        }
+
+        // ==========================================
+        // SIMPAN INFORMASI PENGGUNA
+        // ==========================================
+        window.currentUser = user;
+
+        console.log(
+            "[AUTH] Autentikasi berhasil:",
+            user.role
+        );
+
+        // Jika respons sukses juga mengandung message,
+        // tampilkan pesan tersebut.
+        if (result.message) {
+            await showAuthMessage(result.message, "success");
+        }
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            "[AUTH] Tidak dapat memeriksa sesi:",
+            error
+        );
+
+        await showAuthMessage(
+            "Tidak dapat terhubung ke server. Periksa koneksi internet atau server backend.",
+            "error"
+        );
+
+        // Gangguan jaringan tidak langsung dianggap
+        // sebagai sesi kedaluwarsa.
+        return false;
+    }
+})();
 
 })();

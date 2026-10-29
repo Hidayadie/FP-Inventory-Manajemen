@@ -271,113 +271,170 @@ const detailModal =
     // READ: TAMPILKAN DATA PEMINJAMAN
     // ==========================================
     function renderTable() {
-        const query = $("#lendingSearch").val().trim().toLowerCase();
-        const statusFilter = $("#lendingStatusFilter").val();
+    const query = String($("#lendingSearch").val() || "")
+        .trim()
+        .toLowerCase();
 
-        const filtered = lendingData.filter(function (item) {
-            const status = itemStatus(item);
+    const statusFilter = $("#lendingStatusFilter").val();
 
-            const haystack = [
-                itemID(item),
-                itemUserName(item),
-                itemAssetName(item),
-                itemLocation(item),
-                item?.qty_lending,
-                status
-            ].join(" ").toLowerCase();
+    // Filter data berdasarkan pencarian dan status
+    const filtered = lendingData.filter(function (item) {
+        const status = itemStatus(item);
 
-            return (!query || haystack.includes(query)) &&
-                (!statusFilter || status === statusFilter);
-        });
+        const haystack = [
+            itemID(item),
+            itemUserName(item),
+            itemAssetName(item),
+            itemLocation(item),
+            item?.qty_lending,
+            status
+        ].join(" ").toLowerCase();
 
-        if (!filtered.length) {
-            $table.html(`
-                <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
-                        Tidak ada data peminjaman.
-                    </td>
-                </tr>
-            `);
+        return (!query || haystack.includes(query)) &&
+            (!statusFilter || status === statusFilter);
+    });
 
-            $("#lendingCount").text("Total data: 0");
-            return;
-        }
-
-        $table.html(filtered.map(function (item, index) {
-            const id = itemID(item);
-            const status = itemStatus(item);
-
-            const returnButton = status !== "dikembalikan"
-                ? `
-                    <button type="button"
-                        class="btn btn-sm btn-outline-success btn-return-lending"
-                        data-id="${escapeHtml(id)}"
-                        title="Proses pengembalian">
-                        <i class="bi bi-check2-circle"></i>
-                    </button>
-                `
-                : "";
-
-            const editButton = status !== "dikembalikan"
-                ? `
-                    <button type="button"
-                        class="btn btn-outline-primary btn-edit-lending"
-                        data-id="${escapeHtml(id)}"
-                        title="Ubah">
-                        <i class="bi bi-pencil-square"></i>
-                    </button>
-                `
-                : "";
-
-            return `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>
-                        <span class="text-primary fw-semibold">
-                            #${escapeHtml(id)}
-                        </span>
-                    </td>
-                    <td>${escapeHtml(itemUserName(item))}</td>
-                    <td>${escapeHtml(itemAssetName(item))}</td>
-                    <td>${escapeHtml(itemLocation(item))}</td>
-                    <td>${escapeHtml(
-                        item?.qty_lending ?? item?.QtyLending ?? 0
-                    )}</td>
-                    <td>${formatDate(
-                        item?.lending_date ?? item?.LendingDate
-                    )}</td>
-                    <td>${formatDate(
-                        item?.lending_return ?? item?.ReturnDate
-                    )}</td>
-                    <td>${statusBadge(status)}</td>
-                    <td class="text-center">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button"
-                                class="btn btn-outline-secondary btn-detail-lending"
-                                data-id="${escapeHtml(id)}"
-                                title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </button>
-
-                            ${editButton}
-                            ${returnButton}
-
-                            <button type="button"
-                                class="btn btn-outline-danger btn-delete-lending"
-                                data-id="${escapeHtml(id)}"
-                                title="Hapus">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join(""));
-
-        $("#lendingCount").text(
-            `Menampilkan ${filtered.length} dari ${lendingData.length} transaksi`
-        );
+    // Hancurkan instance DataTables sebelumnya
+    if ($.fn.DataTable.isDataTable("#lendingTable")) {
+        $("#lendingTable").DataTable().destroy();
     }
+
+    // Kosongkan tabel
+    $table.empty();
+
+    // Render baris transaksi
+    filtered.forEach(function (item, index) {
+        const id = itemID(item);
+        const status = itemStatus(item);
+
+        const returnButton = status !== "dikembalikan"
+            ? `
+                <button type="button"
+                    class="btn btn-sm btn-outline-success btn-return-lending"
+                    data-id="${escapeHtml(id)}"
+                    title="Proses pengembalian">
+                    <i class="bi bi-check2-circle"></i>
+                </button>
+            `
+            : "";
+
+        const editButton = status !== "dikembalikan"
+            ? `
+                <button type="button"
+                    class="btn btn-sm btn-outline-primary btn-edit-lending"
+                    data-id="${escapeHtml(id)}"
+                    title="Ubah">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+            `
+            : "";
+
+        const row = `
+            <tr>
+                <td class="text-center">${index + 1}</td>
+
+                <td>
+                    <span class="text-primary fw-semibold">
+                        #${escapeHtml(id)}
+                    </span>
+                </td>
+
+                <td>${escapeHtml(itemUserName(item))}</td>
+
+                <td>${escapeHtml(itemAssetName(item))}</td>
+
+                <td>${escapeHtml(itemLocation(item))}</td>
+
+                <td class="text-center">
+                    ${escapeHtml(
+                        item?.qty_lending ?? item?.QtyLending ?? 0
+                    )}
+                </td>
+
+                <td>
+                    ${formatDate(
+                        item?.lending_date ?? item?.LendingDate
+                    )}
+                </td>
+
+                <td>
+                    ${formatDate(
+                        item?.lending_return ?? item?.ReturnDate
+                    )}
+                </td>
+
+                <td>${statusBadge(status)}</td>
+
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+
+                        <button type="button"
+                            class="btn btn-outline-secondary btn-detail-lending"
+                            data-id="${escapeHtml(id)}"
+                            title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </button>
+
+                        ${editButton}
+                        ${returnButton}
+
+                        <button type="button"
+                            class="btn btn-outline-danger btn-delete-lending"
+                            data-id="${escapeHtml(id)}"
+                            title="Hapus">
+                            <i class="bi bi-trash"></i>
+                        </button>
+
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        $table.append(row);
+    });
+
+    // Perbarui jumlah transaksi
+    $("#lendingCount").text(
+        `Menampilkan ${filtered.length} dari ${lendingData.length} transaksi`
+    );
+
+    // Inisialisasi DataTables
+    $("#lendingTable").DataTable({
+        pageLength: 10,
+        lengthMenu: [
+            [10, 25, 50, 100],
+            [10, 25, 50, 100]
+        ],
+        searching: true,
+        ordering: true,
+        paging: true,
+        info: true,
+        autoWidth: false,
+        order: [],
+        columnDefs: [
+            {
+                targets: [0, 9],
+                orderable: false
+            }
+        ],
+        language: {
+            emptyTable: "Tidak ada data peminjaman.",
+            zeroRecords: "Tidak ada transaksi yang cocok.",
+            search: "Cari:",
+            searchPlaceholder: "Cari transaksi peminjaman...",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ transaksi",
+            infoEmpty: "Tidak ada transaksi",
+            infoFiltered: "(difilter dari _MAX_ total transaksi)",
+            paginate: {
+                first: "Pertama",
+                last: "Terakhir",
+                next: "Berikutnya",
+                previous: "Sebelumnya"
+            }
+        }
+    });
+}
 
     function loadLendings() {
         $table.html(`

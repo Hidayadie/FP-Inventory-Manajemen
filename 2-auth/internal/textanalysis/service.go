@@ -74,7 +74,7 @@ func (s *Service) Analyze(
 
 	python := os.Getenv("TEXT_ANALYSIS_PYTHON")
 	if python == "" {
-		python = "python"
+		python = `C:\Users\User\OneDrive\Documents\Pelatihan BLKPP\FP-Sistem Inventory\.venv\Scripts\python.exe`
 	}
 
 	script := os.Getenv("TEXT_ANALYSIS_SCRIPT")
